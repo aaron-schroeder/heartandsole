@@ -53,6 +53,7 @@ class Activity(fitparse.FitFile):
     # Calculated when needed and memoized here
     self._moving_time = None
     self._norm_power = None
+    self._run_power = None
 
     self.events = self._df_from_messages(
         self.get_messages('event'),
@@ -61,7 +62,8 @@ class Activity(fitparse.FitFile):
 
     # We will build a DataFrame with these fields as columns. Values for each
     # of these fields will be extracted from each record from the .fit file.
-    fields = ['timestamp', 'speed', 'heart_rate', 'power', 'cadence']
+    fields = ['timestamp', 'speed', 'heart_rate', 'power', 'cadence',
+              'enhanced_altitude', 'distance']
 
     # The primary index of the DataFrame is the "block". A block is defined as
     # a period of movement. Blocks may be defined by start/stop event messages
@@ -138,7 +140,11 @@ class Activity(fitparse.FitFile):
         row = []
         for field_name in fields:
           field = record.get(field_name)
-          row.append(field.value if field is not None else None)
+          if field is not None:
+            row.append(field.value if field.units != 'semicircles'
+                  else field.value*180/2**31)
+          else:
+            row.append(None)
 
         if DEBUG_EXCISE:
           row.append(excise)
@@ -154,14 +160,34 @@ class Activity(fitparse.FitFile):
                                  index=[blocks, time_offsets])
     self.data.index.names = ['block', 'offset']
 
-    # These fields may not exist in all .fit files,
+    # Fields may not exist in all .fit files (except timestamp),
     # so drop the columns if they're not present.
-    for field in ['power', 'cadence', 'heart_rate']:
+    for field in ['power', 'cadence', 'heart_rate',
+                  'speed', 'enhanced_altitude', 'distance']:
       if self.data[self.data[field].notnull()].empty:
         self.data.drop(field, axis=1, inplace=True)
 
     if self.has_power and self.has_cadence:
       self._clean_up_power_and_cadence()
+    elif self.has_cadence:
+      self.data['cadence'].fillna(0, inplace=True)
+
+    if self.has_speed:
+      # Convert speed from mm/s to m/s.
+      self.data['speed'] = self.data['speed']/1000.0
+
+      # If speed is NaN, assume no movement.
+      self.data['speed'].fillna(0, inplace=True)
+
+    if self.has_elevation:
+      # If elevation is NaN, fill in with first non-NaN elevation.
+      # This assumes the dataframe has no trailing NaN elevations.
+      self.data['enhanced_altitude'].fillna(method='bfill', inplace=True) 
+
+    if self.has_distance:
+      # If distance is NaN, fill in with first non-NaN distance.
+      # This assumes the dataframe has no trailing NaN distances.
+      self.data['distance'].fillna(method='bfill', inplace=True)
 
   def _df_from_messages(self, messages, fields, timestamp_index=False):
     """Creates a DataFrame from an iterable of fitparse messages.
@@ -244,11 +270,11 @@ class Activity(fitparse.FitFile):
 
   def _clean_up_power_and_cadence(self):
     """Infers true value of null power and cadence values in simple cases."""
-    # If cadence in NaN and power is 0, assume cadence is 0
+    # If cadence is NaN and power is 0, assume cadence is 0
     self.data.loc[self.data['cadence'].isnull()
                   & (self.data['power'] == 0.0), 'cadence'] = 0.0
 
-    # If power in NaN and cadence is 0, assume power is 0
+    # If power is NaN and cadence is 0, assume power is 0
     self.data.loc[self.data['power'].isnull()
                   & (self.data['cadence'] == 0.0), 'power'] = 0.0
 
@@ -278,12 +304,28 @@ class Activity(fitparse.FitFile):
     return 'power' in self.data.columns
 
   @property
+  def has_run_power(self):
+    return self.has_speed and self.has_distance
+
+  @property
   def has_cadence(self):
     return 'cadence' in self.data.columns
 
   @property
   def has_heart_rate(self):
     return 'heart_rate' in self.data.columns
+
+  @property
+  def has_speed(self):
+    return 'speed' in self.data.columns
+
+  @property
+  def has_elevation(self):
+    return 'enhanced_altitude' in self.data.columns
+
+  @property
+  def has_distance(self):
+    return 'distance' in self.data.columns
 
   @property
   def cadence(self):
@@ -336,15 +378,123 @@ class Activity(fitparse.FitFile):
     return self.data[self.data['power'].notnull()]['power']
 
   @property
-  def mean_power(self):
-    if not self.has_power:
+  def run_power(self):
+    """Calculates the instantaneous running power for the activity.
+
+    See (Skiba, 2006) cited in README for details on the 
+    Gravity-Ordered Velocity Stress Score (GOVSS), which serves as the
+    starting point for the running power model used here.
+
+    There are a number of changes from the run power model described
+    in the GOVSS model, mostly having to do with misunderstandings
+    of the cited papers as they relate to longer distances.
+    
+    Change #1: Removed efficiency factor on the cost of running (Cr),
+    because the factor has no physiological basis. The source of the 
+    equation for the metabolic cost of running as a function of 
+    terrain slope is (Minetti, 2002), cited in README. The cost of 
+    running was calculated from measurements of O2 consumed, which 
+    means metabolic energy consumption was the value being measured.
+    The factor nv introduced in equation (7) reflects the increased
+    efficiency of the human engine as running speed increases, likely
+    because of elastic energy return from the stretching of the 
+    muscles, tendons, and ligaments. It would be appropriate to apply
+    this nv factor to a mechanical energy equation for the cost 
+    of running, but not to a metabolic energy equation. All other terms
+    in the running power equation describe metabolic energy consumption.
+
+    Change #2: Removed the kinetic cost of running (Ckin) from Skiba's 
+    equation (5). The origin of this term is (DiPrampero, 1993), 
+    where it describes the cost of accelerating from a standstill to 
+    the steady-state speed of a track race. Even in relatively short
+    events, the 800m and the 5000m, the contribution of Ckin to the 
+    total cost of running was 10% and 1%, respectively.
+    For the longer and less intense runs that make up the bulk of the
+    data this running power model will be applied to, Ckin's
+    contribution to the total cost of running would be even less. 
+    Finally, the GOVSS running power model incorrectly applies Ckin.
+    The GOVSS model multiplies the cost of running (J/kg/m) by the
+    instantaneous velocity to calculate instantaneous power. Ckin 
+    is only incurred at the start of the run, as the runner accelerates
+    to steady-state speed. It is therefore inappropriate to carry it 
+    forward in power calculations once steady-state speed has been
+    achieved. For these reasons, Ckin was neglected from the run power 
+    model. The cost of changing speeds during the run is left for future
+    work, as it is generally incorrect to assume a constant speed
+    during a workout, especially a trail run. However, the relative
+    contribution of Ckin is small enough to neglect for now.
+
+    TODO Change #3: Change length of moving averages used to smooth
+    the data. The basis for the length of these averages in 
+    (Skiba, 2006) is unclear: the costs of running are calculated
+    over 120-second moving averages because that is the approximate
+    length of a 800m race. Skiba's paper mentions that the model was
+    originally validated over 800m distances, but does not clarify
+    which model is being referred to.
+      - (Di Prampero, 1986) measured subjects' cost of running 
+        on a treadmill by collecting their respired air at steady-state,
+        in the 4th-6th minute of running. Then, a similar running power
+        model successfully predicted the subjects' finishing times in a
+        recent marathon or half-marathon.
+      - (Di Prampero, 1993) used a similar model to successfully predict
+        race performances of athletes at 800m and 5000m distances. 
+        To determine cost of running, respired air was collected from 
+        the subjects after 4 minutes of steady-state running outdoors 
+        on a track.
+      - (Minetti, 2002), which provides the equations describing the 
+        cost of walking and running, was based on measurements taken
+        after 3-4 minutes of steady-state treadmill running or walking.
+      - (Pugh, 1971), the study that provides the efficiency of running
+        against a headwind, was based on measurements taken after
+        5-7 minutes of steady-state treadmill running or walking.
+
+    Returns:
+      Instantaneous run power as a Series. J/kg/sec.
+    """
+
+    if not self.has_run_power:
       return None
 
-    return self.power.mean()
+    if self._run_power is None:
+      # Calculate point-to-point grades. Infer zero grade for 
+      # NaN and +-inf values. Assume zero grade if elevation
+      # is not in .fit file.
+      if self.has_elevation:
+        dy = self.data['enhanced_altitude'].diff()
+        dx = self.data['distance'].diff()
+        grade = dy/dx
+        grade.replace([np.inf, -np.inf], np.nan, inplace=True)
+        grade.fillna(0.0, inplace=True)
+      else:
+        grade = self.data['distance'] * 0.0
+
+      # Calculate instantaneous cost of running, per meter per kg, 
+      # as a function of speed and decimal grade.
+      c_r = self._c_r(self.data['speed'], grade)
+      
+      c_r.index = c_r.index.droplevel(level='block')
+      c_r_smooth = fitanalysis.util.moving_average(c_r, 120)
+
+      # Instantaneous running power is simply cost of running 
+      # per meter multiplied by speed in meters per second.
+      self._run_power = c_r_smooth * self.data['speed']
+
+    return self._run_power
+
+  @property
+  def mean_power(self):
+    if not (self.has_power or self.has_run_power):
+      return None
+
+    if self.has_power:
+      return self.power.mean()
+
+    return self.run_power.mean()
+
 
   @property
   def norm_power(self):
-    """Calculates the normalized power.
+    """Calculates the normalized power for the activity.
 
     See (Coggan, 2003) cited in README for details on the rationale behind the
     calculation.
@@ -371,11 +521,11 @@ class Activity(fitparse.FitFile):
     Returns:
       Normalized power as a float
     """
-    if not self.has_power:
+    if not (self.has_power or self.has_run_power):
       return None
 
     if self._norm_power is None:
-      p = self.power
+      p = self.power if self.has_power else self.run_power
       p.index = p.index.droplevel(level='block')
       self._norm_power = (
           np.sqrt(np.sqrt(
@@ -383,24 +533,99 @@ class Activity(fitparse.FitFile):
 
     return self._norm_power
 
-  def intensity(self, ftp):
+  @staticmethod
+  def _c_r(speed, grade):
+    """Calculates the metabolic cost of running.
+
+    See the documentation for Activity.run_power for information
+    on the scientific basis for this calculation.
+
+    Args:
+      speed: Running speed in meters per second. 
+             Either a float or a Series of floats.
+      grade: Decimal grade, i.e. 45% = 0.45.
+             Either a float or a Series of floats.
+
+    Returns:
+      Cost of running, in Joules per kg per meter, as a float or
+      a series of floats, depending on input type.
+    """
+    # Calculate cost of running (neglecting air resistance), 
+    # per meter per kg, as a function of decimal grade.
+    # From (Minetti, 2002). Valid for grades from -45% to 45%.
+    if isinstance(grade, pandas.Series):
+      grade = grade.clip(lower=-0.45, upper=0.45)
+    else:
+      grade = max(-0.45, min(grade, 0.45))
+    c_i = 155.4*grade**5 - 30.4*grade**4 - 43.3*grade**3  \
+        + 46.3*grade**2 + 19.5*grade + 3.6
+ 
+    # Calculate aerodynamic cost of running, per meter per kg,
+    # as a function of speed. From (Pugh, 1971) & (Di Prampero, 1993).
+    # eta_aero is the efficiency of conversion of metabolic energy
+    # into mechanical energy when working against a headwind. 
+    # k is the air friction coefficient, in J s^2 m^-3 kg^-1,
+    # which makes inherent assumptions about the local air density
+    # and the runner's projected area and mass.
+    eta_aero = 0.5
+    k = 0.01
+    c_aero = k * eta_aero**-1 * speed**2
+
+    return c_i + c_aero
+
+  @staticmethod
+  def _calc_power(power_or_pace):
+    """Converts minutes per mile to running power.
+
+    If the input is already a power value, nothing changes. 
+    If the input is a string corresponding to a running pace,
+    the running power model is used to convert the pace to
+    an equivalent metabolic power.
+
+    Args:
+      power_or_pace: If a number, power in Watts.
+                     If a string, running pace in min/mile ('%M:%S').
+
+    Returns:
+      Power as a float
+    """
+    is_string = isinstance(power_or_pace, str)
+    is_num = isinstance(power_or_pace, (int, float))  \
+        and not isinstance(power_or_pace, bool)
+
+    if not (is_string or is_num):
+      return None
+
+    if is_string:
+      # Convert from pace using running power model.
+      min_mile = datetime.datetime.strptime(power_or_pace, '%M:%S')
+      speed = 1609.34/(min_mile.minute*60 + min_mile.second)
+      power = Activity._c_r(speed, 0.0) * speed 
+    else:
+      power = power_or_pace
+
+    return power
+
+  def intensity(self, ftp_or_pace):
     """Calculates the intensity factor of the activity.
 
     Intensity factor is defined as the ratio of normalized power to FTP.
     See (Coggan, 2016) cited in README for more details.
 
     Args:
-      ftp: Functional threshold power in Watts.
+      ftp_or_pace: If a number, functional threshold power in Watts.
+                   If a string, threshold running pace in min/mile: 
+                   '%M:%S'.
 
     Returns:
       Intensity factor as a float
     """
-    if not self.has_power:
+    if not (self.has_power or self.has_run_power):
       return None
 
-    return self.norm_power / float(ftp)
+    return self.norm_power / float(self._calc_power(ftp_or_pace))
 
-  def training_stress(self, ftp):
+  def training_stress(self, ftp_or_pace):
     """Calculates the training stress of the activity.
 
     This is essentially a power-based version of Banister's heart rate-based
@@ -412,13 +637,17 @@ class Activity(fitparse.FitFile):
     using average power does not.
 
     Args:
-      ftp: Functional threshold power in Watts.
+      ftp_or_pace: If a number, functional threshold power in Watts.
+                   If a string, threshold running pace in min/mile: 
+                   '%M:%S'.
 
     Returns:
       Training stress as a float
     """
-    if not self.has_power:
+    if not (self.has_power or self.has_run_power):
       return None
+
+    ftp = self._calc_power(ftp_or_pace)
 
     return (self.moving_time.total_seconds() * self.norm_power
             * self.intensity(ftp)) / (float(ftp) * 3600.0) * 100.0

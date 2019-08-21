@@ -1,11 +1,12 @@
 # fitanalysis
 fitanalysis is a Python library for analysis of ANT/Garmin `.fit` files.
 
-It's geared toward cycling and allows for easy extraction of data such as the
+It's geared toward cycling, and Aaron is expanding the capabilities for running. It allows for easy extraction of data such as the
 following from a `.fit` file:
 - elapsed time
 - moving time
 - average heart rate
+- running power
 - average power
 - normalized power (based on information publicly available about
   TrainingPeaks' NP®)
@@ -33,18 +34,24 @@ import fitanalysis
 
 activity = fitanalysis.Activity('my_activity.fit')
 
-print activity.elapsed_time
-print activity.moving_time
+print(activity.elapsed_time)
+print(activity.moving_time)
 
 # Also available for heart rate and cadence
-print activity.mean_power
+print(activity.mean_power)
 
-print activity.norm_power
+# Uses power values from .fit file if available,
+# otherwise calculates running power from speed,
+# distance, and elevation data.
+print(activity.norm_power)
 
 # Intensity and training stress calculations require
 # a functional threshold power value (in Watts)
-print activity.intensity(310)
-print activity.training_stress(310)
+# or a functional threshold pace value (in minutes per mile)
+print(activity.intensity(310))
+print(activity.intensity('6:30')
+print(activity.training_stress(310))
+print(activity.training_stress('6:30'))
 ```
 
 Construction of an `Activity` parses the `.fit` file and detects periods of
@@ -53,7 +60,7 @@ cadence-, and power-based calculations.
 
 # Comparison of activity analysis platforms
 
-Here is a comparison for a few of my rides of varying profiles across the
+Here is a comparison for a few of Michael's rides of varying profiles across the
 various platforms.
 
 <table>
@@ -272,7 +279,7 @@ various platforms.
 
 All of the activities in the table above were recorded with autopause enabled,
 so they don't highlight any differences in how each platform handles long
-periods of inactivity. To test this I recorded a ride with autopause disabled,
+periods of inactivity. To test this Michael recorded a ride with autopause disabled,
 and then used fitanalysis to analyze it in two ways: detecting and removing
 periods of inactivity (the default for fitanalysis), and leaving the data as-is.
 This activity includes a 2-minute period of inactivity, in addition to shorter
@@ -352,10 +359,10 @@ the inactivity for the purpose of moving time calculation and not do so for
 power is puzzling.
 
 Because Strava removes inactivity for power calculations, both approaches seem
-to be accepted. It's my opinion that removing inactivity is the correct
+to be accepted. It's Michael's opinion that removing inactivity is the correct
 approach because, depending on the length of inactivity, not doing so can lead
 to an inflated or deflated estimation of the effort during periods of activity.
-One counter-argument I can see is for structured workouts: it may be desirable
+One counter-argument is for structured workouts: it may be desirable
 to include the rest periods in calculations of intensity and training stress
 because in this case the length of the rest is deliberately chosen as part of
 the workout. Perhaps this is the reason for TrainingPeaks' implementation?
@@ -367,16 +374,26 @@ moderately long breaks are fine).
 
 # References
 
-Coggan, Andrew. (2012, June 20). _Calculate Normalised Power for an Interval._ [Forum comment]. Retrieved June 14, 2017, from http://www.timetriallingforum.co.uk/index.php?/topic/69738-calculate-normalised-power-for-an-interval/&do=findComment&comment=978386
+Coggan, A. (2012, June 20). Re: Calculate Normalised Power for an Interval [Online forum comment]. Retrieved June 14, 2017, from http://www.timetriallingforum.co.uk/index.php?/topic/69738-calculate-normalised-power-for-an-interval/&do=findComment&comment=978386
 
-Coggan, Andrew. (2016, February 10). _Normalized Power, Intensity Factor and Training Stress Score._ Retrieved June 14, 2017, from
+Coggan, A. (2016, February 10). Normalized Power, Intensity Factor and Training Stress Score. _TrainingPeaks_. Retrieved June 14, 2017, from
 https://www.trainingpeaks.com/blog/normalized-power-intensity-factor-training-stress/
 
-Coggan, Andrew. (2003, March 13). _TSS and IF - at last!_ Retrieved June 14, 2017, from http://lists.topica.com/lists/wattage/read/message.html?mid=907028398&sort=d&start=9353
+Coggan, A. (2003, March 13). TSS and IF - at last! [Online forum post]. Retrieved June 14, 2017, from http://lists.topica.com/lists/wattage/read/message.html?mid=907028398&sort=d&start=9353
 
-Eckner, Andreas. (2017, April 3). _Algorithms for Unevenly Spaced Time Series: Moving Averages and Other Rolling Operators._ Retrieved June 14, 2017, from http://eckner.com/papers/Algorithms%20for%20Unevenly%20Spaced%20Time%20Series.pdf
+Di Prampero, P. E., Atchou, G., Brückner, J. C., & Moia, C. (1986). The energetics of endurance running. _European Journal of Applied Physiology and Occupational Physiology, 55_(3), 259-266.
 
-Friel, Joe. (2009, Sept 21). _Estimating Training Stress Score (TSS)._ Retrieved June 22, 2017, from https://www.trainingpeaks.com/blog/estimating-training-stress-score-tss/
+Di Prampero, P. E., Capelli, C., Pagliaro, P., Antonutto, G., Girardis, M., Zamparo, P., & Soule, R. G. (1993). Energetics of best performances in middle-distance running. _Journal of Applied Physiology, 74_(5), 2318-2324.
+
+Eckner, A. (2017, April 3). Algorithms for Unevenly Spaced Time Series: Moving Averages and Other Rolling Operators. Retrieved June 14, 2017, from http://eckner.com/papers/Algorithms%20for%20Unevenly%20Spaced%20Time%20Series.pdf
+
+Friel, J. (2009, September 21). Estimating Training Stress Score (TSS). _TrainingPeaks_. Retrieved June 22, 2017, from https://www.trainingpeaks.com/blog/estimating-training-stress-score-tss/
+
+Minetti, A. E., Moia, C., Roi, G. S., Susta, D., & Ferretti, G. (2002). Energy cost of walking and running at extreme uphill and downhill slopes. _Journal of Applied Physiology, 93_(3), 1039-1046.
+
+Pugh, L. G. E. (1971). The influence of wind resistance in running and walking and the mechanical efficiency of work against horizontal or vertical forces. _The Journal of Physiology, 213_(2), 255-276.
+
+Skiba, P. F. (2006, September 16). Calculation of Power Output and Quantification of Training Stress in Distance Runners: The Development of the GOVSS Algorithm. _RunScribe_. Retrieved August 20, 2019, from http://runscribe.com/wp-content/uploads/power/GOVSS.pdf
 
 # License
 This project is licensed under the MIT License. See

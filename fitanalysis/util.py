@@ -1,6 +1,6 @@
 """Utility functions."""
 import numpy as np
-
+import pandas
 
 def moving_average(time_series, window_len):
   """Calculates the moving average of an unevenly spaced time series.
@@ -44,7 +44,7 @@ def moving_average(time_series, window_len):
 
   # i is the left side of the window and j is the right
   i = 0
-  for j in xrange(1, len(time_series)):
+  for j in range(1, len(time_series)):
     # Remove the last iteration's left_area as a new right window bound may
     # change the left_area required in this iteration
     window_area -= left_area
@@ -75,5 +75,5 @@ def moving_average(time_series, window_len):
 def print_full(df):
   """Prints a DataFrame in full."""
   pandas.set_option('display.max_rows', len(df))
-  print df
+  print(df)
   pandas.reset_option('display.max_rows')
