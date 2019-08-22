@@ -33,6 +33,7 @@ class Elevation(object):
     # distance to each point, with an initial zero value because 
     # no movement has occurred at first.
     distances_cum = [0.0]
+<<<<<<< HEAD
     for i in range(1, len(latlon_list)):
       # Calculate cumulative distance up to this point by adding
       # the distance between the previous and current point 
@@ -42,6 +43,17 @@ class Elevation(object):
       distance_cum = distances_cum[i-1] +  \
           distance((latlon_prev[1], latlon_prev[0]),
                    (latlon_curr[1], latlon_curr[0])).meters
+=======
+    for i in range(1, len(self.data)):
+      # Calculate cumulative distance up to this point by adding
+      # the distance between the previous and current point 
+      # to the cumulative distance to the previous point.
+      row_prev = self.data.iloc[i-1]
+      row_curr = self.data.iloc[i]
+      distance_cum = distances_cum[i-1] +  \
+          distance((row_prev['lat'], row_prev['lon']),
+                   (row_curr['lat'], row_curr['lon'])).meters
+>>>>>>> Add initial implementation of Elevation.
 
       distances_cum.append(distance_cum)
 
