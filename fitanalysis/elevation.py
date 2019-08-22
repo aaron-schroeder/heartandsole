@@ -8,7 +8,7 @@ from geopy.distance import great_circle as distance
 import fitparse
 
 import fitanalysis.util
-
+import config
 
 class Elevation(object):
   """Object to get elevations from lat-lon coordinates.
@@ -33,17 +33,6 @@ class Elevation(object):
     # distance to each point, with an initial zero value because 
     # no movement has occurred at first.
     distances_cum = [0.0]
-<<<<<<< HEAD
-    for i in range(1, len(latlon_list)):
-      # Calculate cumulative distance up to this point by adding
-      # the distance between the previous and current point 
-      # to the cumulative distance to the previous point.
-      latlon_prev = latlon_list[i-1]
-      latlon_curr = latlon_list[i]
-      distance_cum = distances_cum[i-1] +  \
-          distance((latlon_prev[1], latlon_prev[0]),
-                   (latlon_curr[1], latlon_curr[0])).meters
-=======
     for i in range(1, len(self.data)):
       # Calculate cumulative distance up to this point by adding
       # the distance between the previous and current point 
@@ -53,7 +42,6 @@ class Elevation(object):
       distance_cum = distances_cum[i-1] +  \
           distance((row_prev['lat'], row_prev['lon']),
                    (row_curr['lat'], row_curr['lon'])).meters
->>>>>>> Add initial implementation of Elevation.
 
       distances_cum.append(distance_cum)
 
@@ -71,8 +59,7 @@ class Elevation(object):
   def google(self):
     """TODO (aschroeder): Doc."""
     if 'google' not in self.data.columns:
-      apikey = "AIzaSyA6l5oJV1jSrJzg0YcUWoq6j9Up510oR1I"
-      gmaps = googlemaps.Client(key=apikey)
+      gmaps = googlemaps.Client(key=config.gmaps_api_key)
 
       # Google maps elevation api allows 500 elevation values
       # per request. Break latlon coordinates into 500-piece chunks
