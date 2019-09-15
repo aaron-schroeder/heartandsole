@@ -4,8 +4,8 @@ import pandas
 
 import fitparse
 
-from fitanalysis.runpower import RunPower
-from fitanalysis.elevation import Elevation, Grade
+import fitanalysis.powerutils as pu
+import fitanalysis.spatialutils as su
 import fitanalysis.util
 
 
@@ -183,14 +183,16 @@ class Activity(fitparse.FitFile):
     # Calculate point-to-point grades by smoothing the 
     # elevation profile.
     if self.has_elevation and self.has_distance:
-      self.data['grade'] = Grade(self.data['distance'],
-                                 self.data['enhanced_altitude']).smooth
+      self.data['grade'] = su.grade_smooth(self.data['distance'],
+                                           self.data['enhanced_altitude'])
+      #self.data['grade'] = su.Grade(self.data['distance'],
+      #                              self.data['enhanced_altitude']).smooth
 
     # If power field does not exist, assume the activity is a run and
     # calculate running power if the appropriate fields are available.
     if not self.has_power and self.has_speed and self.has_elevation:
-      self.data['run_power'] = RunPower(self.data['speed'],
-                                        self.data['grade']).power
+      self.data['run_power'] = pu.run_power(self.data['speed'],
+                                            self.data['grade'])
 
   def _df_from_messages(self, messages, fields, timestamp_index=False):
     """Creates a DataFrame from an iterable of fitparse messages.
@@ -325,7 +327,7 @@ class Activity(fitparse.FitFile):
     if self.has_elevation:
       self.data['enhanced_altitude'].fillna(method='bfill', inplace=True) 
     elif self.has_position:
-      self.data['enhanced_altitude'] = Elevation(
+      self.data['enhanced_altitude'] = su.Elevation(
           self.data[['position_long', 'position_lat']]).google
 
   @property

@@ -1,55 +1,85 @@
 import unittest
 import datetime
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 import pandas
 #from pandas.util.testing import assert_frame_equal, assert_series_equal
 
-from fitanalysis.elevation import Grade, Elevation
 from fitanalysis.activity import Activity
-from fitanalysis.runpower import RunPower
+import fitanalysis.spatialutils as su
+import fitanalysis.powerutils as pu
 
-class TestGrade(unittest.TestCase):
+
+class TestElevFuncs(unittest.TestCase):
 
   # Generate some dummy data, both as lists and series.
   distances = [0.0, 100.0, 200.0, 300.0]
   elevations = [0.0, 50.0, 75.0, 75.0]
+  #distances = [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0]
+  #elevations =[0.0,  5.0, 10.0, 15.0, 17.5, 20.0, 22.5, 22.5, 22.5, 22.5]
   expected_grades = [np.nan, 0.5, 0.25, 0.0]
   dist_series = pandas.Series(distances)
   elev_series = pandas.Series(elevations)
   expected_array = np.array(expected_grades)
+  expected_elevs_array = np.array(elevations)
 
-  # Integration test: create a Grade from lists, series, and a mixture.
-  grade_list = Grade(distances, elevations)
-  grade_series = Grade(dist_series, elev_series)
-  grade_mixed_1 = Grade(dist_series, elevations)
-  grade_mixed_2 = Grade(distances, elev_series)
+  # Integration test: calculate grade from lists, series, and a mixture.
+  grade_list_smooth = su.grade_smooth(distances, elevations)
+  grade_series_smooth = su.grade_smooth(dist_series, elev_series)
+  grade_mixed_1_smooth = su.grade_smooth(dist_series, elevations)
+  grade_mixed_2_smooth = su.grade_smooth(distances, elev_series)
+  grade_list_raw = su.grade_raw(distances, elevations)
+  grade_series_raw = su.grade_raw(dist_series, elev_series)
+  grade_mixed_1_raw = su.grade_raw(dist_series, elevations)
+  grade_mixed_2_raw = su.grade_raw(distances, elev_series)
 
-  def test_raw(self):
-    assert_array_equal(self.grade_list.raw,
-                        self.expected_array,
-                        "Raw grades are not correct.")
+  # Integration test: calculate smooth elevs from lists, series, and a mixture.
+  elev_list_smooth = su.elevation_smooth(distances, elevations)
+  elev_series_smooth = su.elevation_smooth(dist_series, elev_series)
+  elev_mixed_1_smooth = su.elevation_smooth(dist_series, elevations)
+  elev_mixed_2_smooth = su.elevation_smooth(distances, elev_series)
 
-  def test_raw_type(self):
-    self.assertIsInstance(self.grade_list.raw,
+  def test_raw_grade(self):
+    assert_array_equal(self.grade_list_raw,
+                       self.expected_array,
+                       "Raw grades are not correct.")
+
+  def test_smooth_grade(self):
+    assert_allclose(self.grade_list_smooth,
+                    self.expected_array,
+                    atol=0.10,
+                    err_msg="Smooth grades are not sufficiently close.")
+
+  def test_raw_grade_type(self):
+    self.assertIsInstance(self.grade_list_raw,
                           np.ndarray,
                           "Raw grades are not a ndarray.")
 
-  def test_smooth_type(self):
-    """Basically just an integration test of the smoothing algorithm."""
-    self.assertIsInstance(self.grade_list.smooth,
+  def test_smooth_grade_type(self):
+    self.assertIsInstance(self.grade_list_smooth,
                           np.ndarray,
                           "Smooth grades are not a ndarray.")
+
+  def test_elevation_smooth(self):
+    assert_allclose(self.elev_list_smooth,
+                    self.expected_elevs_array,
+                    atol=10.0,
+                    err_msg="Smooth elevs are not sufficiently close.")
+
+  def test_smooth_grade_type(self):
+    self.assertIsInstance(self.elev_list_smooth,
+                          np.ndarray,
+                          "Smooth elevs are not a ndarray.")
 
 class TestElevation(unittest.TestCase):
 
   # Integration test: create an Elevation from a list of coordinates
   latlon_list = [[-105.0, 40.0], [-105.1, 40.0], [-105.1, 40.1], [-105.1, 40.2]]
-  elevation = Elevation(latlon_list)
+  elevation = su.Elevation(latlon_list)
 
   def test_create(self):
     self.assertIsInstance(self.elevation,
-                          Elevation,
+                          su.Elevation,
                           "elevation is not an Elevation...")
 
 class TestRunPower(unittest.TestCase):
@@ -57,44 +87,44 @@ class TestRunPower(unittest.TestCase):
   # Generate some dummy data, both as lists and series.
   speeds_ms = [3.0, 3.0, 3.0, 3.0]
   grades = [0.1, 0.0, 0.2, 0.2]
-  expected_powers = [0.0, 0.0, 0.0, 0.0] # calculate independently.
+  expected_powers = [0.0, 0.0, 0.0, 0.0] # TODO(aschroeder) calculate.
   speed_series = pandas.Series(speeds_ms)
   grade_series = pandas.Series(grades)
   expected_array = np.array(expected_powers)
 
-  # Integration test: create a RunPower from lists, series, and mixture.
-  from_list = RunPower(speeds_ms, grades)
-  from_series = RunPower(speed_series, grade_series)
-  from_mixed_1 = RunPower(speed_series, grades)
-  from_mixed_2 = RunPower(speeds_ms, grade_series)
+  # Integration test: calc running power from lists, series, mixture.
+  from_list = pu.run_power(speeds_ms, grades)
+  from_series = pu.run_power(speed_series, grade_series)
+  from_mixed_1 = pu.run_power(speed_series, grades)
+  from_mixed_2 = pu.run_power(speeds_ms, grade_series)
 
   def test_c_r_float_type(self):
     """Integration test. Actual validation test forthcoming."""
-    self.assertIsInstance(self.from_list._c_r(self.speeds_ms[0], self.grades[0]),
+    self.assertIsInstance(pu.run_cost(self.speeds_ms[0], self.grades[0]),
                           float,
                           "Cr should be a float.")
 
   def test_c_r_series_type(self):
     """Integration test. Actual validation test forthcoming."""
-    self.assertIsInstance(self.from_list._c_r(self.speed_series, self.grade_series),
+    self.assertIsInstance(pu.run_cost(self.speed_series, self.grade_series),
                           pandas.Series,
                           "Cr should be a Series.")
 
   def test_calc_power_float_type(self):
     """Integration test. Actual validation test forthcoming."""
-    self.assertIsInstance(self.from_list._calc_power(self.speeds_ms[0]),
+    self.assertIsInstance(pu.flat_run_power(self.speeds_ms[0]),
                           float,
-                          "_calc_power should return a float.")
+                          "flat_run_power should return a float.")
 
   def test_calc_power_str_type(self):
     """Integration test. Actual validation test forthcoming."""
-    self.assertIsInstance(self.from_list._calc_power('6:30'),
+    self.assertIsInstance(pu.flat_run_power('6:30'),
                           float,
-                          "_calc_power should return a float.")
+                          "flat_run_power should return a float.")
 
   def test_power_type(self):
     """Integration test. Actual validation test forthcoming."""
-    self.assertIsInstance(self.from_list.power,
+    self.assertIsInstance(self.from_list,
                           np.ndarray,
                           "Power should be a ndarray.")
 
