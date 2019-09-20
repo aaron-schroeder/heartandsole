@@ -5,9 +5,9 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pandas
 #from pandas.util.testing import assert_frame_equal, assert_series_equal
 
-from fitanalysis.activity import Activity
-import fitanalysis.spatialutils as su
-import fitanalysis.powerutils as pu
+from heartandsole.activity import Activity
+import heartandsole.spatialutils as su
+import heartandsole.powerutils as pu
 
 
 class TestElevFuncs(unittest.TestCase):
