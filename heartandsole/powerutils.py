@@ -4,6 +4,34 @@ import datetime
 import heartandsole.util
 
 
+def air_friction_coefficient(Cd, mass, proj_area, density_air_local):
+  """Calculates the coefficient in formula where cost of running = kv^2.
+
+  Based on the aerodynamic drag equation: F_drag = 1/2 (Cd rho A) v^2.
+  The air friction coefficient, k, is analagously in the aerodynamic
+  cost of running equation: Caero = k v^2, where Caero is in J/kg/m.
+  The units of k are m^-1.
+
+  Args:
+    Cd: Float representing drag coefficient (unitless). Est 1.4 from
+        Hirata 2012.
+    mass: Float representing runner's mass in kg.
+    proj_area: Float representing runner's projected area in m^2.
+               Est 0.65 from Pugh 1970.
+    density_air_local: Air density at the location of running in kg/m^3.
+                       1.125 at sea level, approx 1.0 in Boulder.
+
+  Returns: 
+    Air friction coefficient, k, in m^1.
+
+  TODO: 
+    - Implement formula for projected area as function of height
+      and mass see where GoldenCheetah got this.
+    - Play around and verify 0.1 is a valid estimate for k for me.
+  """
+  return (1/2) * Cd * density_air_local * proj_area / mass
+
+
 def run_cost(speed, grade):
   """Calculates the metabolic cost of running.
 
@@ -43,6 +71,7 @@ def run_cost(speed, grade):
   c_aero = k * eta_aero**-1 * speed**2
 
   return c_i + c_aero
+
 
 def run_power(speeds, grades):
   """Calculates instantaneous running power.
@@ -146,6 +175,7 @@ def run_power(speeds, grades):
 
   return power.to_numpy().squeeze()
 
+
 def flat_run_power(pace):
   """Converts pace to flat-ground running power.
 
@@ -157,7 +187,7 @@ def flat_run_power(pace):
     pace: String for running pace in min/mile ('%M:%S'),
           or float for running pace in m/s.
   Returns:
-    Power as a float
+    Power as a float.
   """
   if isinstance(pace, str):
     min_mile = datetime.datetime.strptime(pace, '%M:%S')

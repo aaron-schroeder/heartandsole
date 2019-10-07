@@ -1,8 +1,28 @@
 # heartandsole
-heartandsole is a Python library for analysis of running data files.
 
-It's geared toward running. It allows for easy extraction of data such as the
-following from a `.fit` file:
+> Python library for analysis of running data files.
+
+[![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![License](http://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
+
+---
+
+## Table of Contents                                                                    
+- [Introduction](#introduction)
+- [Dependencies and Installation](#dependencies-and-installation)
+- [Example](#example)
+- [Project Status](#project-status)
+- [References](#references)
+- [Contact](#contact)
+- [License](#license)
+
+---
+
+## Introduction
+
+heartandsole is designed to work with running or walking activity files.
+It allows for extraction of data from a `.fit` file as well as calculations,
+such as the following:
 - elapsed time
 - moving time
 - average heart rate
@@ -27,16 +47,17 @@ projects diverged significantly enough for me to move my fork to a separate
 repository. I am indebted to Michael for writing such a clean, useful,
 easy-to-understand package that served as heartandsole's starting point.
 
-# Dependencies and installation
-This package is currently under construction and the installation will not be successful. Information will be added as soon as the install is ready.
-<!--
-[Pandas](http://pandas.pydata.org/), [NumPy](http://www.numpy.org/), and
-[fitparse](https://github.com/dtcooper/python-fitparse) are required.
+---
 
-`python setup.py install` (or `python setup.py install --user`) to install.
--->
+## Dependencies and Installation
 
-# Example
+[Pandas](http://pandas.pydata.org/), [NumPy](http://www.numpy.org/), [fitparse](https://github.com/dtcooper/python-fitparse), and [spatialfriend](https://github.com/aaron-schroeder/spatialfriend) are required.
+
+`pip install heartandsole` to install.
+
+---
+
+## Example
 
 heartandsole provides the `Activity` class.
 
@@ -64,7 +85,19 @@ print(activity.intensity(17.0))
 Construction of an `Activity` parses the `.fit` file and detects periods of
 inactivity. The decision to remove inactive periods is left to the user.
 
-# References
+---
+
+## Project Status
+
+### Complete
+
+### Current Activities
+
+### Future Work
+
+---
+
+## References
 
 Coggan, A. (2012, June 20). Re: Calculate Normalised Power for an Interval [Online forum comment]. Retrieved June 14, 2017, from http://www.timetriallingforum.co.uk/index.php?/topic/69738-calculate-normalised-power-for-an-interval/&do=findComment&comment=978386
 
@@ -87,7 +120,24 @@ Pugh, L. G. E. (1971). The influence of wind resistance in running and walking a
 
 Skiba, P. F. (2006, September 16). Calculation of Power Output and Quantification of Training Stress in Distance Runners: The Development of the GOVSS Algorithm. _RunScribe_. Retrieved August 20, 2019, from http://runscribe.com/wp-content/uploads/power/GOVSS.pdf
 
-# License
+---
+
+## Contact
+
+Reach out to me at one of the following places!
+
+- Website: <a href="https://trailzealot.com" target="_blank">trailzealot.com</a>
+- LinkedIn: <a href="https://www.linkedin.com/in/aarondschroeder/" target="_blank">linkedin.com/in/aarondschroeder</a>
+- Twitter: <a href="https://twitter.com/trailzealot" target="_blank">@trailzealot</a>
+- Instagram: <a href="https://instagram.com/trailzealot" target="_blank">@trailzealot</a>
+- GitHub: <a href="https://github.com/aaron-schroeder" target="_blank">github.com/aaron-schroeder</a>
+
+---
+
+## License
+
+[![License](http://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
+
 This project is licensed under the MIT License. See
-[LICENSE](https://github.com/aaron-schroeder/heartandsole/blob/master/LICENSE) file
-for details.
+[LICENSE](https://github.com/aaron-schroeder/heartandsole/blob/master/LICENSE)
+file for details.

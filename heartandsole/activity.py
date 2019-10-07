@@ -1,11 +1,14 @@
 import datetime
+import sys
+
+import fitparse
 import numpy as np
 import pandas
 
-import fitparse
+sys.path.append('/home/aaronsch/webapps/aarontakesawalk/trailzealot/spatialfriend/')
+import spatialfriend as sf
 
 import heartandsole.powerutils as pu
-import heartandsole.spatialutils as su
 import heartandsole.util
 
 
@@ -166,7 +169,7 @@ class Activity(fitparse.FitFile):
     # Fields may not exist in all .fit files (except timestamp),
     # so drop the columns if they're not present.
     for field in ['power', 'cadence', 'heart_rate',
-                  'speed', 'enhanced_altitude', 'distance',
+                  'enhanced_speed', 'enhanced_altitude', 'distance',
                   'position_lat', 'position_long']:
       if self.data[self.data[field].notnull()].empty:
         self.data.drop(field, axis=1, inplace=True)
@@ -183,15 +186,15 @@ class Activity(fitparse.FitFile):
     # Calculate point-to-point grades by smoothing the 
     # elevation profile.
     if self.has_elevation and self.has_distance:
-      self.data['grade'] = su.grade_smooth(self.data['distance'],
+      self.data['grade'] = sf.grade_smooth(self.data['distance'],
                                            self.data['enhanced_altitude'])
-      #self.data['grade'] = su.Grade(self.data['distance'],
+      #self.data['grade'] = sf.Grade(self.data['distance'],
       #                              self.data['enhanced_altitude']).smooth
 
     # If power field does not exist, assume the activity is a run and
     # calculate running power if the appropriate fields are available.
     if not self.has_power and self.has_speed and self.has_elevation:
-      self.data['run_power'] = pu.run_power(self.data['speed'],
+      self.data['run_power'] = pu.run_power(self.data['enhanced_speed'],
                                             self.data['grade'])
 
   def _df_from_messages(self, messages, fields, timestamp_index=False):
@@ -256,8 +259,8 @@ class Activity(fitparse.FitFile):
       if i == 0:
         timestamps.append(ts)
         events.append([self.EVENT_TYPE_START, self.TIMER_TRIGGER_DETECTED])
-      elif record.get('speed') is not None:
-        speed = record.get('speed').value
+      elif record.get('enhanced_speed') is not None:
+        speed = record.get('enhanced_speed').value
         if speed <= self.STOPPED_THRESHOLD:
           if not stopped:
             timestamps.append(ts)
@@ -292,13 +295,10 @@ class Activity(fitparse.FitFile):
   def _clean_up_speed_and_distance(self):
     """Infers true value of null / missing speed and distance values."""
     if self.has_speed:
-      # Convert speed from mm/s to m/s.
-      self.data['speed'] = self.data['speed']/1000.0
-
       # If speed is NaN, assume no movement.
       # TODO(aschroeder) does it make sense to fill these in?
       # Should they be left as null and handled in @property?
-      self.data['speed'].fillna(0, inplace=True)
+      self.data['enhanced_speed'].fillna(0, inplace=True)
 
     if self.has_distance:
       # If distance is NaN, fill in with first non-NaN distance.
@@ -327,7 +327,7 @@ class Activity(fitparse.FitFile):
     if self.has_elevation:
       self.data['enhanced_altitude'].fillna(method='bfill', inplace=True) 
     elif self.has_position:
-      self.data['enhanced_altitude'] = su.Elevation(
+      self.data['enhanced_altitude'] = sf.Elevation(
           self.data[['position_long', 'position_lat']]).google
 
   @property
@@ -363,7 +363,7 @@ class Activity(fitparse.FitFile):
 
   @property
   def has_speed(self):
-    return 'speed' in self.data.columns
+    return 'enhanced_speed' in self.data.columns
 
   @property
   def has_elevation(self):
@@ -386,7 +386,7 @@ class Activity(fitparse.FitFile):
     if self._remove_stopped_periods:
       return self.data[
           self.data['cadence'].notnull() & (self.data['cadence'] > 0)
-          & (self.data['speed'] > self.STOPPED_THRESHOLD)]['cadence']
+          & (self.data['enhanced_speed'] > self.STOPPED_THRESHOLD)]['cadence']
 
     return self.data[
         self.data['cadence'].notnull() & (self.data['cadence'] > 0)]['cadence']
@@ -404,9 +404,9 @@ class Activity(fitparse.FitFile):
       return None
 
     if self._remove_stopped_periods:
-      return self.data[
-          self.data['heart_rate'].notnull()
-          & self.data['speed'] > self.STOPPED_THRESHOLD]['heart_rate']
+      return self.data[self.data['heart_rate'].notnull()
+                       & self.data['enhanced_speed'] 
+                         > self.STOPPED_THRESHOLD]['heart_rate']
 
     return self.data[self.data['heart_rate'].notnull()]['heart_rate']
 
@@ -424,7 +424,8 @@ class Activity(fitparse.FitFile):
 
     if self._remove_stopped_periods:
       return self.data[self.data['power'].notnull()
-                       & self.data['speed'] > self.STOPPED_THRESHOLD]['power']
+                       & self.data['enhanced_speed']  
+                         > self.STOPPED_THRESHOLD]['power']
 
     return self.data[self.data['power'].notnull()]['power']
 
@@ -435,7 +436,7 @@ class Activity(fitparse.FitFile):
 
     if self._remove_stopped_periods:
       return self.data[self.data['run_power'].notnull()
-                       & self.data['speed'] 
+                       & self.data['enhanced_speed'] 
                        > self.STOPPED_THRESHOLD]['run_power']
 
     return self.data[self.data['run_power'].notnull()]['run_power']
