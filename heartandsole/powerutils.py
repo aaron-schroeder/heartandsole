@@ -1,6 +1,11 @@
-import pandas
+"""Functions related to calculating power from speed and grade."""
+
 import datetime
 
+import numpy as np
+import pandas
+
+import heartandsole.stressutils as su
 import heartandsole.util
 
 
@@ -32,7 +37,7 @@ def air_friction_coefficient(Cd, mass, proj_area, density_air_local):
   return (1/2) * Cd * density_air_local * proj_area / mass
 
 
-def run_cost(speed, grade):
+def run_cost(speed, grade=None):
   """Calculates the metabolic cost of running.
 
   See the documentation for powerutils.run_power for information
@@ -51,10 +56,14 @@ def run_cost(speed, grade):
   # Calculate cost of running (neglecting air resistance), 
   # per meter per kg, as a function of decimal grade.
   # From (Minetti, 2002). Valid for grades from -45% to 45%.
+  is_number = isinstance(grade, float) or isinstance(grade, int)  \
+              and not isinstance(grade, bool)
   if isinstance(grade, pandas.Series):
     grade = grade.clip(lower=-0.45, upper=0.45)
-  else:
+  elif is_number:
     grade = max(-0.45, min(grade, 0.45))
+  else:
+    grade = speed*0.0
 
   c_i = 155.4*grade**5 - 30.4*grade**4 - 43.3*grade**3  \
       + 46.3*grade**2 + 19.5*grade + 3.6
@@ -73,7 +82,7 @@ def run_cost(speed, grade):
   return c_i + c_aero
 
 
-def run_power(speeds, grades):
+def run_power(speeds, grades=None):
   """Calculates instantaneous running power.
 
   See (Skiba, 2006) cited in README for details on the 
@@ -163,11 +172,12 @@ def run_power(speeds, grades):
     Instantaneous run power as a ndarray. Watts/kg.
   """
   speeds = pandas.Series(speeds).reset_index(drop=True)
-  grades = pandas.Series(grades).reset_index(drop=True)
+  if grades is not None:
+    grades = pandas.Series(grades).reset_index(drop=True)
 
   # Calculate instantaneous cost of running, per meter per kg, 
   # as a function of speed and decimal grade.
-  c_rs = run_cost(speeds, grades)
+  c_rs = run_cost(speeds, grade=grades)
 
   # Instantaneous running power is simply cost of running 
   # per meter multiplied by speed in meters per second.
@@ -177,7 +187,7 @@ def run_power(speeds, grades):
 
 
 def flat_run_power(pace):
-  """Converts pace to flat-ground running power.
+  """Converts flat-ground pace to running power.
 
   The running power model is used to convert the pace to
   an equivalent metabolic power.
@@ -189,13 +199,31 @@ def flat_run_power(pace):
   Returns:
     Power as a float.
   """
+  is_num = isinstance(pace, float) or isinstance(pace, int)  \
+           and not isinstance(pace, bool)
   if isinstance(pace, str):
     min_mile = datetime.datetime.strptime(pace, '%M:%S')
     speed = 1609.34/(min_mile.minute*60 + min_mile.second)
-  elif isinstance(pace, float) or isinstance(pace, int):
+  elif is_num:
     speed = pace
   else:
     print("Pace must be a string, float, or integer.")
     return None
 
-  return run_cost(speed, 0.0) * speed
+  return run_cost(speed) * speed
+
+
+def flat_speed(power):
+  """Converts power to flat-ground running speed.
+
+  This function is simply an inversion of the speed-power function.
+
+  Args:
+    power: A float or array of floats representing running power,
+           in Watts/kg.
+
+  TODO: Find a pythonic way to invert the flat_run_power equation.
+  """
+  value = (25 * power ** 2 + 8640) ** 0.5 + 5 * power
+
+  return (5 ** (1/3) * value ** (2/3) - 12 * 5 ** (2/3)) / (value ** (1/3))

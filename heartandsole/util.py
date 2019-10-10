@@ -1,4 +1,6 @@
 """Utility functions."""
+import datetime
+
 import numpy as np
 import pandas
 
@@ -70,6 +72,17 @@ def moving_average(time_series, window_len):
     out[j] = window_area / window_len
 
   return out
+
+
+def time_from_timestring(timestring):
+  """Converts .tcx - formatted time string into a datetime object."""
+  return datetime.datetime.strptime(timestring[0:19],'%Y-%m-%dT%H:%M:%S')
+
+
+def timestring_from_time(time):
+  """Converts datetime into a formatted string for .tcx file."""
+  #return time.strftime('%Y-%m-%dT%H:%M:%S-06:00')
+  return time.strftime('%Y-%m-%dT%H:%M:%S.00-06:00')
 
 
 def print_full(df):

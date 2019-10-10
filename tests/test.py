@@ -6,6 +6,7 @@ import pandas
 #from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 from heartandsole.activity import Activity
+from heartandsole.file_readers import FitActivity
 import heartandsole.powerutils as pu
 
 
@@ -59,7 +60,11 @@ class TestRunPower(unittest.TestCase):
 class TestActivity(unittest.TestCase):
 
   # Integration test: create an Activity from .fit file.
-  activity = Activity("activity_files/3981100861.fit",
+  fit = FitActivity("/home/aaronsch/webapps/aarontakesawalk/trailzealot/media/uploads/2019-05-11-144658-UBERDROID6944-216-1.fit",
+  #activity = Activity("activity_files/3981100861.fit",
+                      remove_stopped_periods=False)
+  activity = Activity(fit.data,
+                      fit.elapsed_time, 
                       remove_stopped_periods=False)
 
   def test_create(self):
@@ -68,39 +73,98 @@ class TestActivity(unittest.TestCase):
                           "activity is not an Activity...")
 
   def test_moving_time(self):
+    print('Moving time = %0.1f mins' 
+          % (self.activity.moving_time.total_seconds() / 60)) # / 60.0)
     self.assertIsInstance(self.activity.moving_time,
                           datetime.timedelta,
                           "Moving time should be a timedelta")
 
   def test_mean_cadence(self):
+    print('Avg cadence = %0.1f spm' % self.activity.mean_cadence)
     self.assertIsInstance(self.activity.mean_cadence,
                           float,
                           "Mean cadence should be a float")
 
-  def test_mean_heart_rate(self):
-    self.assertIsInstance(self.activity.mean_heart_rate,
-                          float,
-                          "Mean heart rate should be a float")
+  def test_elevation(self):
+    print('elevs') if self.activity.has_elevation else print('no elevs')
+    self.assertIsInstance(self.activity.elevation,
+                          pandas.Series,
+                          "Elevation should be a Series.")
+
+  def test_grade(self):
+    self.assertIsInstance(self.activity.grade,
+                          pandas.Series,
+                          "Grade should be a Series.")
+
+  def test_speed(self):
+    print('speed') if self.activity.has_speed else print('no speed')
+    self.assertIsInstance(self.activity.speed,
+                          pandas.Series,
+                          "Speed should be a Series.")
 
   def test_mean_power(self):
+    print('Mean power = %0.1f W/kg' % self.activity.mean_power)
     self.assertIsInstance(self.activity.mean_power,
                           float,
                           "Mean power should be a float")
 
   def test_norm_power(self):
+    print('Norm power = %0.1f W/kg' % self.activity.norm_power)
     self.assertIsInstance(self.activity.norm_power,
                           float,
                           "Normalized power should be a float")
 
-  def test_intensity(self):
-    self.assertIsInstance(self.activity.intensity(16.25),
+  def test_power_intensity(self):
+    print('Testing power intensity assuming 6:30 threshold speed.')
+    pwr = pu.flat_run_power('6:30')
+    print('This speed generates a flat-ground power of %0.1f W/kg'
+          % pwr)
+    print('IF = '+str(self.activity.power_intensity(pwr)))
+    self.assertIsInstance(self.activity.power_intensity(pwr),
                           float,
-                          "Intensity should be a float")
+                          "Power-based intensity should be a float")
 
-  def test_training_stress(self):
-    self.assertIsInstance(self.activity.training_stress(16.25),
+  def test_power_training_stress(self):
+    pwr = pu.flat_run_power('6:30')
+    print('pTSS = ' + str(self.activity.power_training_stress(pwr)))
+    self.assertIsInstance(self.activity.power_training_stress(pwr),
                           float,
-                          "Intensity should be a float")
+                          "Power-based training stress should be a float")
+
+  def test_mean_hr(self):
+    print('Mean HR = ' + str(self.activity.mean_hr))
+    self.assertIsInstance(self.activity.mean_hr,
+                          float,
+                          "Mean heart rate should be a float")
+
+  def test_hr_intensity(self):
+    print('HR IF = ' + str(self.activity.hr_intensity(160)))
+    self.assertIsInstance(self.activity.hr_intensity(160),
+                          float,
+                          "HR-based intensity should be a float")
+
+  def test_hr_training_stress(self):
+    print('hrTSS = ' + str(self.activity.hr_training_stress(160)))
+    self.assertIsInstance(self.activity.hr_training_stress(160),
+                          float,
+                          "HR-based training stress should be a float")
+
+  def test_equiv_speed(self):
+    self.assertIsInstance(self.activity.equiv_speed,
+                          pandas.Series,
+                          'Equivalent pace should be a pandas.Series.')
+
+  def test_mean_speed(self):
+    print('Mean speed = ' + str(self.activity.mean_speed)+' m/s')
+    self.assertIsInstance(self.activity.mean_speed,
+                          float,
+                          'Mean speed should be a float')
+
+  def test_mean_equiv_speed(self):
+    print('Mean equiv speed = ' + str(self.activity.mean_equiv_speed)+' m/s')
+    self.assertIsInstance(self.activity.mean_equiv_speed,
+                          float,
+                          'Mean equivalent speed should be a float')
 
 if __name__ == '__main__':
     unittest.main()
