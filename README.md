@@ -64,36 +64,65 @@ heartandsole provides the `Activity` class.
 ```python
 import heartandsole
 
-activity = heartandsole.Activity('my_activity.fit')
+fit = heartandsole.FitActivity('my_activity.fit')
+activity = heartandsole.Activity(fit.data, fit.elapsed_time)
 
 print(activity.elapsed_time)
 print(activity.moving_time)
 
-# Also available for heart rate and cadence.
-print(activity.mean_power)
+# Also available for power, equivalent-power flat-ground speed,
+# cadence, and heart rate:
+print(activity.mean_speed)
 
-# Uses power values from .fit file if available,
-# otherwise calculates running power from speed,
-# distance, and elevation data.
+# Calculates running power from speed, and elevation data.
+power = activity.power
+
+# 30-second moving average power is a more suitable
+# proxy for metabolic intensity than instantaneous power.
+power_smooth = activity.power_smooth
+
+# Summarizing activity power with the 4-norm is more representative
+# of intensity than average power.
 print(activity.norm_power)
 
-# Intensity and training stress calculations require
-# a functional threshold power value (in Watts/kg).
-print(activity.intensity(17.0))
+# Intensity and training stress calculations require a threshold 
+# power value (in Watts/kg), which the utility functions can calculate
+# from flat-ground threshold pace (min/mile).
+pwr = heartandsole.powerutils.flat_run_power('6:30')
+print(activity.power_intensity(pwr))
+print(activity.power_training_stress(pwr))
+
+# Intensity and training stress may also be calculated from
+# HR data. This calculation requires a threshold HR value in BPM.
+print(activity.hr_intensity(162))
+print(activity.hr_training_stress(162))
 ```
 
-Construction of an `Activity` parses the `.fit` file and detects periods of
+Construction of a `FitActivity` parses the `.fit` file and detects periods of
 inactivity. The decision to remove inactive periods is left to the user.
+
+Construction of an `Activity` accepts a pandas DataFrame formatted by a
+`FitActivity`, plus an elapsed time value (which may not be possible to
+calculate from the formatted DataFrame).
 
 ---
 
 ## Project Status
 
+<!--
 ### Complete
-
+-->
 ### Current Activities
 
+- Showcase package functionality on my website.
+
+- Make a project wiki so I can be as verbose as I please.
+
+- Make life a little easier with Travis CI.
+
 ### Future Work
+
+- Expand file-reading ability to `gpx`, `.tcx`, `.pwx`, and maybe more. 
 
 ---
 
