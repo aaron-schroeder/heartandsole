@@ -273,11 +273,11 @@ class FitActivity(fitparse.FitFile):
     if not self.has_position:
       return None
 
-    return self.data[['position_lat', 'position_long']].tolist()
+    return self.data[['position_lat', 'position_long']].values.tolist()
 
   @property
   def lonlats(self):
     if not self.has_position:
       return None
 
-    return self.data[['position_long', 'position_lat']].tolist()
+    return self.data[['position_long', 'position_lat']].values.tolist()
