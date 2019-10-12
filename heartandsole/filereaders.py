@@ -269,8 +269,15 @@ class FitActivity(fitparse.FitFile):
     return 'distance' in self.data.columns
 
   @property
+  def latlons(self):
+    if not self.has_position:
+      return None
+
+    return self.data[['position_lat', 'position_long']].tolist()
+
+  @property
   def lonlats(self):
     if not self.has_position:
       return None
 
-    return self.data[['position_long', 'position_lat']]
+    return self.data[['position_long', 'position_lat']].tolist()

@@ -6,7 +6,7 @@ import pandas
 #from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 from heartandsole.activity import Activity
-from heartandsole.file_readers import FitActivity
+from heartandsole.filereaders import FitActivity
 import heartandsole.powerutils as pu
 
 

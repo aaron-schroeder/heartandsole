@@ -307,10 +307,7 @@ class Activity(object):
     if not self.has_speed:
       return None
 
-    if self._norm_power is None:
-      self._norm_power = su.lactate_norm(self.power_smooth)
-
-    return self._norm_power
+    return su.lactate_norm(self.power_smooth)
 
   def power_intensity(self, threshold_power):
     """Calculates the intensity factor of the activity.
