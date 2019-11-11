@@ -37,8 +37,8 @@ class Activity(object):
     Args:
       df: A pandas.DataFrame representing data read in from an 
           activity file.
-      elapsed_time: A float representing the total duration of the
-                    activity in seconds.
+      elapsed_time: A datetime.timedelta representing the total duration 
+                    of the activity.
       remove_stopped_periods: If True, regions of data with speed below
                               a threshold will be removed from the data.
                               Default is False.

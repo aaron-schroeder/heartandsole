@@ -164,6 +164,10 @@ class FitActivity(fitparse.FitFile):
       if self.data[self.data[field].notnull()].empty:
         self.data.drop(field, axis=1, inplace=True)
 
+    if self.has_position:
+      self.data['position_long'].fillna(method='bfill', inplace=True)
+      self.data['position_lat'].fillna(method='bfill', inplace=True)
+
   def _df_from_messages(self, messages, fields, timestamp_index=False):
     """Creates a DataFrame from an iterable of fitparse messages.
 

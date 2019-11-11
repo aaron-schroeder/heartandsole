@@ -9,7 +9,7 @@ requirements = ['numpy>=1.14', 'pandas>=0.24', 'fitparse>=1',
                 'spatialfriend>=0.0.1']
 
 setup(name='heartandsole',
-      version='0.0.12',
+      version='0.0.13',
       author='Aaron Schroeder',
       author_email='aaron@trailzealot.com',
       description='Python library for analysis of ANT/Garmin .fit files',
