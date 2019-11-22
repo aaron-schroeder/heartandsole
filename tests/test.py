@@ -6,7 +6,7 @@ import pandas
 #from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 from heartandsole.activity import Activity
-from heartandsole.filereaders import FitActivity
+from heartandsole.filereaders import FitFileReader, TcxFileReader
 import heartandsole.powerutils as pu
 
 
@@ -56,16 +56,38 @@ class TestRunPower(unittest.TestCase):
                           np.ndarray,
                           "Power should be a ndarray.")
 
+class TestTcxFileReader(unittest.TestCase):
+  # Integration test: create a TcxFileReader from .tcx file.
+  tcx = TcxFileReader('/home/aaronsch/webapps/aarontakesawalk/trailzealot/media/media/gpx/20190425_110505_Running.tcx')#boulderhikes/activity_4257833732.tcx')
+
+  def test_create(self):
+    self.assertIsInstance(self.tcx,
+                          TcxFileReader,
+                          "tcx is not a TcxFileReader...")
+
+  
 
 class TestActivity(unittest.TestCase):
 
   # Integration test: create an Activity from .fit file.
-  fit = FitActivity("/home/aaronsch/webapps/aarontakesawalk/trailzealot/media/uploads/2019-05-11-144658-UBERDROID6944-216-1.fit",
-  #activity = Activity("activity_files/3981100861.fit",
-                      remove_stopped_periods=False)
+  fit = FitFileReader("/home/aaronsch/webapps/aarontakesawalk/trailzealot/media/uploads/2019-05-11-144658-UBERDROID6944-216-1.fit")
+                      # "activity_files/3981100861.fit")
   activity = Activity(fit.data,
-                      fit.elapsed_time, 
                       remove_stopped_periods=False)
+
+  # Integration test: create an Activity from .tcx file.
+  tcx = TcxFileReader('/home/aaronsch/webapps/aarontakesawalk/trailzealot/media/media/gpx/20190425_110505_Running.tcx')
+  #tcx = TcxFileReader('/home/aaronsch/webapps/aarontakesawalk/trailzealot/boulderhikes/activity_4257833732.tcx')
+
+  #print(tcx.data.columns)
+  #import heartandsole.util
+  #heartandsole.util.print_full(tcx.data)
+  #print(tcx.data)
+
+  activity = Activity(tcx.data,
+                          remove_stopped_periods=False)
+  #print(activity.data.columns)
+  print(activity.distance)
 
   def test_create(self):
     self.assertIsInstance(self.activity,

@@ -18,49 +18,51 @@ import heartandsole.util
 DEBUG_EXCISE = False
 
 
-#class Activity(fitparse.FitFile):
 class Activity(object):
   """Represents a running activity.
 
   Construction of an Activity parses the DataFrame and detects periods
   of inactivity, as such periods must be removed from the data for
   certain calculations.
+
+  TODO: 
+    - Get auto-detected stops working.
+    - Consider subclassing activity as a dataframe itself.
   """
 
   # Speeds less than or equal to this value (in m/s) are
   # considered to be stopped
   STOPPED_THRESHOLD = 0.3
 
-  def __init__(self, df, elapsed_time, remove_stopped_periods=False):
+  def __init__(self, df, remove_stopped_periods=False):
     """Creates an Activity from a formatted pandas.DataFrame.
 
     Args:
       df: A pandas.DataFrame representing data read in from an 
-          activity file.
-      elapsed_time: A datetime.timedelta representing the total duration 
-                    of the activity.
+          activity file. Formatted according to the scheme defined by
+          the output of FileReader.data.
       remove_stopped_periods: If True, regions of data with speed below
                               a threshold will be removed from the data.
                               Default is False.
     """
-    self.elapsed_time = elapsed_time
     self._remove_stopped_periods = remove_stopped_periods
+
+    self.data = df
+
+    # Calculate elapsed time before possibly removing data from
+    # stoppages.
+    self.elapsed_time = self.data.index.get_level_values('offset')[-1]
 
     # Calculated when needed and memoized here.
     self._moving_time = None
     self._norm_power = None
-
-    self.data = df
-    # self.data = pandas.DataFrame(rows, columns=fields,
-    #                              index=[blocks, time_offsets])
-    # self.data.index.names = ['block', 'offset']
 
     # Clean up any data that was read in from file.
     if self.has_cadence:
       self.data['cadence'].fillna(0, inplace=True)
 
     if self.has_elevation:
-      self.data['enhanced_altitude'].fillna(method='bfill', inplace=True)
+      self.data['elevation'].fillna(method='bfill', inplace=True)
     
     if self.has_speed or self.has_distance:
       self._clean_up_speed_and_distance()
@@ -71,7 +73,7 @@ class Activity(object):
       # If speed is NaN, assume no movement.
       # TODO(aschroeder) does it make sense to fill these in?
       # Should they be left as null and handled in @property?
-      self.data['enhanced_speed'].fillna(0, inplace=True)
+      self.data['speed'].fillna(0., inplace=True)
 
     if self.has_distance:
       # If distance is NaN, fill in with first non-NaN distance.
@@ -80,13 +82,19 @@ class Activity(object):
       # Should they be left as null and handled in @property?
       self.data['distance'].fillna(method='bfill', inplace=True)
 
-    # TOO: If speed exists but distance does not, calculate distances.
+    # TODO: If speed exists but distance does not, calculate distances.
     if self.has_speed and not self.has_distance:
       pass
 
-    # TODO: If distance exists but speed does not, calculate speeds.
+    # If distance exists but speed does not, calculate speeds.
+    # TODO: Filter this speed series for noise.
     if self.has_distance and not self.has_speed:
-      pass
+      self.data['speed'] = np.gradient(
+          self.data['distance'].values,
+          self.data.index.get_level_values('offset').seconds)
+      #self.data['speed'] = self.data['distance'].diff() /  \
+      #                     self.data.index.get_level_values('offset').seconds
+      self.data['speed'].fillna(0., inplace=True)
 
   @property
   def moving_time(self):
@@ -113,11 +121,11 @@ class Activity(object):
 
   @property
   def has_speed(self):
-    return 'enhanced_speed' in self.data.columns
+    return 'speed' in self.data.columns
 
   @property
   def has_elevation(self):
-    return 'enhanced_altitude' in self.data.columns
+    return 'elevation' in self.data.columns
 
   @property
   def has_distance(self):
@@ -131,7 +139,7 @@ class Activity(object):
     if self._remove_stopped_periods:
       return self.data[
           self.data['cadence'].notnull() & (self.data['cadence'] > 0)
-          & (self.data['enhanced_speed'] > self.STOPPED_THRESHOLD)]['cadence']
+          & (self.data['speed'] > self.STOPPED_THRESHOLD)]['cadence']
 
     return self.data[
         self.data['cadence'].notnull() & (self.data['cadence'] > 0)]['cadence']
@@ -150,7 +158,7 @@ class Activity(object):
 
     if self._remove_stopped_periods:
       return self.data[self.data['heart_rate'].notnull()
-                       & self.data['enhanced_speed'] 
+                       & self.data['speed'] 
                          > self.STOPPED_THRESHOLD]['heart_rate']
 
     return self.data[self.data['heart_rate'].notnull()]['heart_rate']
@@ -168,11 +176,14 @@ class Activity(object):
       return None
 
     if self._remove_stopped_periods:
-      return self.data[self.data['enhanced_speed'].notnull()
-                       & self.data['enhanced_speed'] 
-                         > self.STOPPED_THRESHOLD]['enhanced_speed']
+      return self.data[self.data['speed'].notnull()
+                       & self.data['speed'] 
+                         > self.STOPPED_THRESHOLD]['speed']
 
-    return self.data[self.data['enhanced_speed'].notnull()]['enhanced_speed']
+    # TODO: Decide how I feel about this notnull() business.
+    #       I should be able to clean the data, or maybe not,
+    #       in which case it should be handled rather than hidden.
+    return self.data[self.data['speed'].notnull()]['speed']
 
   @property
   def mean_speed(self):
@@ -194,7 +205,7 @@ class Activity(object):
     if not self.has_elevation:
       return None
 
-    return self.data['enhanced_altitude']  
+    return self.data['elevation']  
 
   @property
   def grade(self):
@@ -217,7 +228,7 @@ class Activity(object):
 
     if self._remove_stopped_periods:
       return self.data[self.data['power'].notnull()
-                       & self.data['enhanced_speed'] 
+                       & self.data['speed'] 
                        > self.STOPPED_THRESHOLD]['power']
 
     return self.data[self.data['power'].notnull()]['power']
