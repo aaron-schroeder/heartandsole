@@ -21,11 +21,8 @@
 ## Introduction
 
 heartandsole is designed to work with running or walking activity files.
-It allows for extraction of data from a `.fit` file as well as calculations,
-such as the following:
-- elapsed time
-- moving time
-- average heart rate
+It reads data from `.fit` or `.tcx` files, cleanses the data, and performs
+calculations, such as the following:
 - running power (based on Dr. Philip Friere Skiba's GOVSS algorithm)
 - average running power
 - normalized running power (based on information publicly available about
@@ -33,6 +30,9 @@ such as the following:
 - intensity (based on information publicly available about TrainingPeaks' IF®)
 - training stress (based on information publicly available about
   TrainingPeaks' TSS® and Dr. Philip Friere Skiba's GOVSS algorithm)
+- average heart rate
+- elapsed time
+- moving time
 
 My impetus for this project was to implement a version of Philip Friere Skiba's 
 GOVSS algorithm (with tweaks to better align with the underlying research). 
@@ -51,7 +51,9 @@ easy-to-understand package that served as heartandsole's starting point.
 
 ## Dependencies and Installation
 
-[Pandas](http://pandas.pydata.org/), [NumPy](http://www.numpy.org/), [fitparse](https://github.com/dtcooper/python-fitparse), and [spatialfriend](https://github.com/aaron-schroeder/spatialfriend) are required.
+[Pandas](http://pandas.pydata.org/), [lxml](https://lxml.de/), [NumPy](http://www.numpy.org/), 
+[python-dateutil](https://dateutil.readthedocs.io/en/stable/), [fitparse](https://github.com/dtcooper/python-fitparse), 
+and [spatialfriend](https://github.com/aaron-schroeder/spatialfriend) are required.
 
 `pip install heartandsole` to install.
 
@@ -64,8 +66,8 @@ heartandsole provides the `Activity` class.
 ```python
 import heartandsole
 
-fit = heartandsole.FitActivity('my_activity.fit')
-activity = heartandsole.Activity(fit.data, fit.elapsed_time)
+fit = heartandsole.FitFileReader('my_activity.fit')
+activity = heartandsole.Activity(fit.data)
 
 print(activity.elapsed_time)
 print(activity.moving_time)
@@ -98,23 +100,24 @@ print(activity.hr_intensity(162))
 print(activity.hr_training_stress(162))
 ```
 
-Construction of a `FitActivity` parses the `.fit` file and detects periods of
-inactivity. The decision to remove inactive periods is left to the user.
+Construction of a `FitFileReader` parses the `.fit` file and reads the 
+data into a pandas DataFrame.
 
-Construction of an `Activity` accepts a pandas DataFrame formatted by a
-`FitActivity`, plus an elapsed time value (which may not be possible to
-calculate from the formatted DataFrame).
+Construction of an `Activity` accepts a pandas DataFrame formatted by one
+of the `FileReader` classes, cleanses the data, then detects periods of inactivity.
 
 ---
 
 ## Project Status
 
-<!--
 ### Complete
--->
+
+- Add capability to read .tcx files.
+
 ### Current Activities
 
-- Showcase package functionality on my website.
+- Integrate .tcx file reading into the [file analysis tool](https://trailzealot.com/training/analyze)
+  on my website.
 
 - Make a project wiki so I can be as verbose as I please.
 
@@ -122,7 +125,9 @@ calculate from the formatted DataFrame).
 
 ### Future Work
 
-- Expand file-reading ability to `gpx`, `.tcx`, `.pwx`, and maybe more. 
+- Expand file-reading ability to `.gpx`, `.pwx`, and more.
+
+- Expand data cleansing methods in `Activity`.
 
 ---
 
