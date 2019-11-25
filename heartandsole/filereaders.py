@@ -74,15 +74,10 @@ class BaseFileReader(object):
       if self.data[self.data[field].notnull()].empty:
         self.data.drop(field, axis=1, inplace=True)
 
-    # Clean up position data, if it exists.
-    if self.has_position:
-      self.data['position_long'].fillna(method='bfill', inplace=True)
-      self.data['position_lat'].fillna(method='bfill', inplace=True)
-
   @property
   def has_position(self):
-    return 'position_lat' in self.data.columns and  \
-           'position_long' in self.data.columns
+    return 'lat' in self.data.columns and  \
+           'lon' in self.data.columns
 
   @property
   def has_cadence(self):
@@ -94,11 +89,11 @@ class BaseFileReader(object):
 
   @property
   def has_speed(self):
-    return 'enhanced_speed' in self.data.columns
+    return 'speed' in self.data.columns
 
   @property
   def has_elevation(self):
-    return 'enhanced_altitude' in self.data.columns
+    return 'elevation' in self.data.columns
 
   @property
   def has_distance(self):
@@ -109,14 +104,14 @@ class BaseFileReader(object):
     if not self.has_position:
       return None
 
-    return self.data[['position_lat', 'position_long']].values.tolist()
+    return self.data[['lat', 'lon']].values.tolist()
 
   @property
   def lonlats(self):
     if not self.has_position:
       return None
 
-    return self.data[['position_long', 'position_lat']].values.tolist()
+    return self.data[['lon', 'lat']].values.tolist()
 
 
 class FitFileReader(BaseFileReader):

@@ -85,9 +85,10 @@ class TestActivity(unittest.TestCase):
   #print(tcx.data)
 
   activity = Activity(tcx.data,
-                          remove_stopped_periods=False)
+                      remove_stopped_periods=False)
   #print(activity.data.columns)
   print(activity.distance)
+  print(activity.data.columns)
 
   def test_create(self):
     self.assertIsInstance(self.activity,

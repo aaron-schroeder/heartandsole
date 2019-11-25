@@ -64,6 +64,9 @@ class Activity(object):
     if self.has_elevation:
       self.data['elevation'].fillna(method='bfill', inplace=True)
     
+    if self.has_position:
+      self.data[['lon', 'lat']].fillna(method='bfill').fillna(method='ffill')
+
     if self.has_speed or self.has_distance:
       self._clean_up_speed_and_distance()
 
@@ -132,6 +135,10 @@ class Activity(object):
     return 'distance' in self.data.columns
 
   @property
+  def has_position(self):
+    return 'lat' in self.data.columns and 'lon' in self.data.columns
+
+  @property
   def cadence(self):
     if not self.has_cadence:
       return None
@@ -169,6 +176,20 @@ class Activity(object):
       return None
 
     return self.heart_rate.mean()
+
+  @property
+  def lonlats(self):
+    if not self.has_position:
+      return None
+
+    return self.data[['lon', 'lat']].values.tolist()
+
+  @property
+  def latlons(self):
+    if not self.has_position:
+      return None
+
+    return self.data[['lat', 'lon']].values.tolist()
 
   @property
   def speed(self):
