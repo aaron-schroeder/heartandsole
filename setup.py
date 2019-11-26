@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 import sys
 
+import heartandsole
 
 with open('README.md', 'r') as readme_file:
   readme = readme_file.read()
@@ -9,7 +10,7 @@ requirements = ['python-dateutil>=2.7.0', 'numpy>=1.14', 'pandas>=0.24',
                 'lxml>=4.2.5', 'fitparse>=1', 'spatialfriend>=0.0.1']
 
 setup(name='heartandsole',
-      version='0.0.16',
+      version='0.0.17',
       author='Aaron Schroeder',
       author_email='aaron@trailzealot.com',
       description='Python library for analysis of ANT/Garmin .fit files',
