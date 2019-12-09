@@ -34,6 +34,10 @@ class Activity(object):
   # considered to be stopped
   STOPPED_THRESHOLD = 0.3
 
+  # Fields that will exist as columns in the DataFrame from
+  # potentially multiple elevation sources.
+  ELEV_FIELDS = ['elevation', 'grade', 'power', 'power_smooth']
+
   def __init__(self, df, remove_stopped_periods=False):
     """Creates an Activity from a formatted pandas.DataFrame.
 
@@ -47,7 +51,7 @@ class Activity(object):
     """
     self._remove_stopped_periods = remove_stopped_periods
 
-    self.data = df
+    self.data = df.copy()
 
     # Calculate elapsed time before possibly removing data from
     # stoppages.
@@ -57,7 +61,7 @@ class Activity(object):
     self._moving_time = None
     self._norm_power = None
 
-    # Clean up any data that was read in from file.
+    # Clean up the data that was read in from file.
     if self.has_cadence:
       self.data['cadence'].fillna(0, inplace=True)
 
@@ -69,6 +73,19 @@ class Activity(object):
 
     if self.has_speed or self.has_distance:
       self._clean_up_speed_and_distance()
+
+    # Add a MultiIndex to the DataFrame to distinguish between
+    # identically-named columns calculated with different elevation
+    # data. For fields that have no possible alternate sources,
+    # like speed, leave the elev_source level value blank, so that
+    # these columns can be accessed based on their field name alone.
+    index_tups = [(field_name, 'file') if field_name in self.ELEV_FIELDS
+                  else (field_name, '') for field_name in self.data.columns]
+    multiindex = pandas.MultiIndex.from_tuples(index_tups,
+                                               names=('field', 'elev_source'))
+    #multiindex = pandas.MultiIndex.from_product([self.data.columns, ['file']],
+    #                                            names=('field', 'elev_source'))
+    self.data.columns = multiindex
 
   def _clean_up_speed_and_distance(self):
     """Infers true value of null / missing speed and distance values."""
@@ -98,6 +115,28 @@ class Activity(object):
       #self.data['speed'] = self.data['distance'].diff() /  \
       #                     self.data.index.get_level_values('offset').seconds
       self.data['speed'].fillna(0., inplace=True)
+
+  def add_elevation_source(self, elev_list, name):
+    """Adds an alternate elevation column to the DataFrame.
+
+    A Multi Index distinguishes between columns containing fields 
+    calculated using different elevation sources.
+
+    Args:
+      elev_list: a list of elevation values at each timestep, in meters.
+      name: a string to be used as the value of the source index.
+    """
+    self.data['elevation', name] = elev_list
+
+  @property
+  def file_data(self):
+    """Returns a DataFrame that consists only of data from the file.
+
+    The full DataFrame may have data from other sources. This property
+    takes the full MultiIndexed DataFrame and distills it to a
+    single-Indexed DataFrame.
+    """
+    return self.data.xs('file', level='elev_source', axis=1)
 
   @property
   def moving_time(self):
@@ -130,6 +169,9 @@ class Activity(object):
   def has_elevation(self):
     return 'elevation' in self.data.columns
 
+  def has_source(self, source_name):
+    return source_name in self.data.columns.get_level_values('elev_source')
+
   @property
   def has_distance(self):
     return 'distance' in self.data.columns
@@ -149,7 +191,8 @@ class Activity(object):
           & (self.data['speed'] > self.STOPPED_THRESHOLD)]['cadence']
 
     return self.data[
-        self.data['cadence'].notnull() & (self.data['cadence'] > 0)]['cadence']
+        self.data['cadence'].notnull() 
+        & (self.data['cadence'] > 0)]['cadence']
 
   @property
   def mean_cadence(self):
@@ -172,6 +215,7 @@ class Activity(object):
 
   @property
   def mean_hr(self):
+    """TODO: Decide on heart_rate or hr, and be consistent."""
     if not self.has_heart_rate:
       return None
 
@@ -221,90 +265,80 @@ class Activity(object):
   
     return self.data['distance']
 
-  @property
-  def elevation(self):
-    if not self.has_elevation:
+  def elevation(self, source_name='file'):
+    if not (self.has_elevation and self.has_source(source_name)):
       return None
 
-    return self.data['elevation']  
+    return self.data['elevation', source_name]
 
-  @property
-  def grade(self):
-    if not self.has_elevation:
+  def grade(self, source_name='file'):
+    if not (self.has_elevation and self.has_source(source_name)):
       return None
 
-    if 'grade' not in self.data.columns:
-      self.data['grade'] = sf.grade_smooth(self.distance,
-                                           self.elevation)
+    if ('grade', source_name) not in self.data.columns:
+      grade_array = sf.grade_smooth(self.distance, self.elevation(source_name))
+      self.data['grade', source_name] = grade_array 
 
-    return self.data['grade']
+    #return pandas.Series(data=grade_array, index=self.data.index)    
+    return self.data['grade', source_name]
 
-  @property
-  def power(self):
-    if not self.has_speed:
+  def power(self, source_name='file'):
+    if not (self.has_speed and self.has_source(source_name)):
       return None
 
-    if 'power' not in self.data.columns:
-      self.data['power'] = pu.run_power(self.speed, self.grade)
+    if ('power', source_name) not in self.data.columns:
+      power_array = pu.run_power(self.speed, self.grade(source_name))
+      self.data['power', source_name] = power_array
 
-    if self._remove_stopped_periods:
-      return self.data[self.data['power'].notnull()
-                       & self.data['speed'] 
-                       > self.STOPPED_THRESHOLD]['power']
+    #return pandas.Series(data=power_array, index=self.data.index)
+    return self.data['power', source_name]
 
-    return self.data[self.data['power'].notnull()]['power']
-
-  @property
-  def power_smooth(self):
-    if not self.has_speed:
+  def power_smooth(self, source_name='file'):
+    if not (self.has_speed and self.has_source(source_name)):
       return None
 
-    if 'power_smooth' not in self.data.columns:
-      p = self.power
+    if ('power_smooth', source_name) not in self.data.columns:
+      p = self.power(source_name=source_name).copy()
       p.index = p.index.droplevel(level='block')
-    
-      self.data['power_smooth'] = heartandsole.util.moving_average(p, 30)
+      power_array =  heartandsole.util.moving_average(p, 30)
+      self.data['power_smooth', source_name] = power_array
 
-    return self.data['power_smooth']
+    return self.data['power_smooth', source_name]
 
-
-  @property
-  def equiv_speed(self):
+  def equiv_speed(self, source_name='file'):
     """Calculates the flat-ground pace that would produce equal power.
 
     Takes the 30-second moving average power, and inverts the pace-power
     equation to calculate equivalent pace.
+
+    TODO: Decide on missing-elevation-handling. Return smoothed pace,
+          or return None?    
 
     If elevation values aren't included in the file, the power values
     are simply a function of speed, and then are smoothed with a 
     30-second moving average. In that case, equivalent paces shouldn't
     be too far off from actual paces.
     """
-    if not self.has_speed:
+    if not (self.has_speed and self.has_source(source_name)):
       return None
 
-    if not self.has_elevation:
-      return self.speed
+    return pu.flat_speed(self.power_smooth(source_name=source_name))
 
-    return pu.flat_speed(self.power_smooth)
-
-  @property
-  def mean_equiv_speed(self):
-    if not self.has_speed:
+  def mean_equiv_speed(self, source_name='file'):
+    if not (self.has_speed and self.has_source(source_name)):
       return None
 
     # Assumes each speed value was maintained for 1 second.
-    return self.equiv_speed.sum() / self.moving_time.total_seconds()
+    return self.equiv_speed(source_name=source_name).sum()  \
+           / self.moving_time.total_seconds()
 
-  @property
-  def mean_power(self):
-    if not self.has_speed:
+  def mean_power(self, source_name='file'):
+    if not (self.has_speed and self.has_source(source_name)):
       return None
 
-    return self.power.mean()
+    return self.power(source_name=source_name).mean()
 
-  @property
-  def norm_power(self):
+  def norm_power(self, source_name='file'):
     """Calculates the normalized power for the activity.
 
     See (Coggan, 2003) cited in README for details on the rationale behind the
@@ -336,12 +370,12 @@ class Activity(object):
     Returns:
       Normalized power as a float.
     """
-    if not self.has_speed:
+    if not (self.has_speed and self.has_source(source_name)):
       return None
 
-    return su.lactate_norm(self.power_smooth)
+    return su.lactate_norm(self.power_smooth(source_name=source_name))
 
-  def power_intensity(self, threshold_power):
+  def power_intensity(self, threshold_power, source_name='file'):
     """Calculates the intensity factor of the activity.
 
     One definition of an activity's intensity factor is the ratio of
@@ -354,12 +388,12 @@ class Activity(object):
     Returns:
       Intensity factor as a float.
     """
-    if not self.has_speed:
+    if not (self.has_speed and self.has_source(source_name)):
       return None
 
-    return self.norm_power / float(threshold_power)
+    return self.norm_power(source_name=source_name) / float(threshold_power)
 
-  def power_training_stress(self, threshold_power):
+  def power_training_stress(self, threshold_power, source_name='file'):
     """Calculates the power-based training stress of the activity.
 
     This is essentially a power-based version of Banister's 
@@ -375,10 +409,11 @@ class Activity(object):
     Returns:
       Power-based training stress as a float.
     """
-    if not self.has_speed:
+    if not (self.has_speed and self.has_source(source_name)):
       return None
 
-    return su.training_stress(self.power_intensity(threshold_power),
+    return su.training_stress(self.power_intensity(threshold_power,
+                                                   source_name=source_name),
                               self.moving_time.total_seconds())
 
   def hr_intensity(self, threshold_hr):

@@ -1,14 +1,16 @@
-import unittest
 import datetime
+
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 import pandas
 #from pandas.util.testing import assert_frame_equal, assert_series_equal
+import spatialfriend
+import unittest
 
 from heartandsole.activity import Activity
 from heartandsole.filereaders import FitFileReader, TcxFileReader
 import heartandsole.powerutils as pu
-
+from heartandsole import config
 
 class TestRunPower(unittest.TestCase):
 
@@ -64,76 +66,125 @@ class TestTcxFileReader(unittest.TestCase):
     self.assertIsInstance(self.tcx,
                           TcxFileReader,
                           "tcx is not a TcxFileReader...")
-
   
 
 class TestActivity(unittest.TestCase):
 
-  # Integration test: create an Activity from .fit file.
-  fit = FitFileReader("/home/aaronsch/webapps/aarontakesawalk/trailzealot/media/uploads/2019-05-11-144658-UBERDROID6944-216-1.fit")
-                      # "activity_files/3981100861.fit")
-  activity = Activity(fit.data,
-                      remove_stopped_periods=False)
+  # Integration test: create an Activity from a Wahoo fitness .fit file.
+  # This file contains elevation data.
+  fit_wahoo = FitFileReader(
+      'activity_files/2019-05-11-144658-UBERDROID6944-216-1.fit')
+  activity_wahoo = Activity(fit_wahoo.data,
+                            remove_stopped_periods=False)
 
-  # Integration test: create an Activity from .tcx file.
-  tcx = TcxFileReader('/home/aaronsch/webapps/aarontakesawalk/trailzealot/media/media/gpx/20190425_110505_Running.tcx')
-  #tcx = TcxFileReader('/home/aaronsch/webapps/aarontakesawalk/trailzealot/boulderhikes/activity_4257833732.tcx')
+  # Integration test: create an Activity from a Garmin .fit file.
+  # This file does not contain elevation or running dynamics data.
+  fit_garmin = FitFileReader('activity_files/3981100861.fit')
+  activity_garmin = Activity(fit_garmin.data,
+                             remove_stopped_periods=False)
 
-  #print(tcx.data.columns)
-  #import heartandsole.util
-  #heartandsole.util.print_full(tcx.data)
-  #print(tcx.data)
+  # Integration test: create an Activity from a .tcx file that contains
+  # data for all available fields.
+  tcx_full = TcxFileReader('activity_files/activity_4257833732.tcx')
+  activity_full = Activity(tcx_full.data,
+                           remove_stopped_periods=False)
 
-  activity = Activity(tcx.data,
-                      remove_stopped_periods=False)
-  #print(activity.data.columns)
-  print(activity.distance)
-  print(activity.data.columns)
+  # Integration test: create an Activity from a .tcx file with missing
+  # fields. This file has no elevation, speed, or cadence data.
+  tcx_sparse = TcxFileReader('activity_files/20190425_110505_Running.tcx')
+  activity_sparse = Activity(tcx_sparse.data,
+                             remove_stopped_periods=False)
+
+  # Integration test: add a new elevation source to an 
+  # existing activity.
+  el_friend = spatialfriend.Elevation(activity_full.lonlats,
+                                      user_gmaps_key=config.my_gmaps_key)
+  elevs_google = el_friend.google(units='meters')
+  activity_full.add_elevation_source(elevs_google, 'google')
 
   def test_create(self):
-    self.assertIsInstance(self.activity,
+    self.assertIsInstance(self.activity_full,
                           Activity,
                           "activity is not an Activity...")
 
   def test_moving_time(self):
     print('Moving time = %0.1f mins' 
-          % (self.activity.moving_time.total_seconds() / 60)) # / 60.0)
-    self.assertIsInstance(self.activity.moving_time,
+          % (self.activity_full.moving_time.total_seconds() / 60)) 
+    self.assertIsInstance(self.activity_full.moving_time,
                           datetime.timedelta,
                           "Moving time should be a timedelta")
 
   def test_mean_cadence(self):
-    print('Avg cadence = %0.1f spm' % self.activity.mean_cadence)
-    self.assertIsInstance(self.activity.mean_cadence,
+    print('Avg cadence = %0.1f spm' % self.activity_full.mean_cadence)
+    self.assertIsInstance(self.activity_full.mean_cadence,
                           float,
                           "Mean cadence should be a float")
 
   def test_elevation(self):
-    print('elevs') if self.activity.has_elevation else print('no elevs')
-    self.assertIsInstance(self.activity.elevation,
+    print('elevs') if self.activity_full.has_elevation else print('no elevs')
+    self.assertIsInstance(self.activity_full.elevation(),
                           pandas.Series,
                           "Elevation should be a Series.")
 
   def test_grade(self):
-    self.assertIsInstance(self.activity.grade,
+    self.assertIsInstance(self.activity_full.grade(),
+                          pandas.Series,
+                          "Grade should be a Series.")
+
+  def test_grade_alt(self):
+    self.assertIsInstance(self.activity_full.grade(source_name='google'),
                           pandas.Series,
                           "Grade should be a Series.")
 
   def test_speed(self):
-    print('speed') if self.activity.has_speed else print('no speed')
-    self.assertIsInstance(self.activity.speed,
+    print('speed') if self.activity_full.has_speed else print('no speed')
+    self.assertIsInstance(self.activity_full.speed,
                           pandas.Series,
                           "Speed should be a Series.")
 
+  def test_power(self):
+    self.assertIsInstance(self.activity_full.power(),
+                          pandas.Series,
+                          'Power should be a pandas.Series.')
+
+  def test_power_alt(self):
+    self.assertIsInstance(self.activity_full.power(source_name='google'),
+                          pandas.Series,
+                          'Power should be a pandas.Series.')
+
+  def test_power_smooth(self):
+    self.assertIsInstance(self.activity_full.power_smooth(),
+                          pandas.Series,
+                          'Power should be a pandas.Series.')
+
+  def test_power_smooth_alt(self):
+    self.assertIsInstance(self.activity_full.power_smooth(source_name='google'),
+                          pandas.Series,
+                          'Power should be a pandas.Series.')
+
   def test_mean_power(self):
-    print('Mean power = %0.1f W/kg' % self.activity.mean_power)
-    self.assertIsInstance(self.activity.mean_power,
+    print('Mean power = %0.1f W/kg' % self.activity_full.mean_power())
+    self.assertIsInstance(self.activity_full.mean_power(),
+                          float,
+                          "Mean power should be a float")
+
+  def test_mean_power_alt(self):
+    print('Mean google power = %0.1f W/kg'
+          % self.activity_full.mean_power(source_name='google'))
+    self.assertIsInstance(self.activity_full.mean_power(source_name='google'),
                           float,
                           "Mean power should be a float")
 
   def test_norm_power(self):
-    print('Norm power = %0.1f W/kg' % self.activity.norm_power)
-    self.assertIsInstance(self.activity.norm_power,
+    print('Norm power = %0.1f W/kg' % self.activity_full.norm_power())
+    self.assertIsInstance(self.activity_full.norm_power(),
+                          float,
+                          "Normalized power should be a float")
+
+  def test_norm_power_alt(self):
+    print('Norm google power = %0.1f W/kg'
+          % self.activity_full.norm_power(source_name='google'))
+    self.assertIsInstance(self.activity_full.norm_power(source_name='google'),
                           float,
                           "Normalized power should be a float")
 
@@ -142,52 +193,88 @@ class TestActivity(unittest.TestCase):
     pwr = pu.flat_run_power('6:30')
     print('This speed generates a flat-ground power of %0.1f W/kg'
           % pwr)
-    print('IF = '+str(self.activity.power_intensity(pwr)))
-    self.assertIsInstance(self.activity.power_intensity(pwr),
+    print('File IF = %0.3f'
+          % self.activity_full.power_intensity(pwr))
+    self.assertIsInstance(self.activity_full.power_intensity(pwr),
+                          float,
+                          "Power-based intensity should be a float")
+
+  def test_power_intensity_alt(self):
+    pwr = pu.flat_run_power('6:30')
+    print('Google IF = %0.3f'
+          % self.activity_full.power_intensity(pwr, source_name='google'))
+    self.assertIsInstance(self.activity_full.power_intensity(
+                              pwr,
+                              source_name='google'),
                           float,
                           "Power-based intensity should be a float")
 
   def test_power_training_stress(self):
     pwr = pu.flat_run_power('6:30')
-    print('pTSS = ' + str(self.activity.power_training_stress(pwr)))
-    self.assertIsInstance(self.activity.power_training_stress(pwr),
+    print('pTSS = %0.0f' % self.activity_full.power_training_stress(pwr))
+    self.assertIsInstance(self.activity_full.power_training_stress(pwr),
+                          float,
+                          "Power-based training stress should be a float")
+
+  def test_power_training_stress_alt(self):
+    pwr = pu.flat_run_power('6:30')
+    print('Google pTSS = %0.0f'
+          % self.activity_full.power_training_stress(pwr, source_name='google'))
+    self.assertIsInstance(self.activity_full.power_training_stress(pwr),
                           float,
                           "Power-based training stress should be a float")
 
   def test_mean_hr(self):
-    print('Mean HR = ' + str(self.activity.mean_hr))
-    self.assertIsInstance(self.activity.mean_hr,
+    print('Mean HR = ' + str(self.activity_full.mean_hr))
+    self.assertIsInstance(self.activity_full.mean_hr,
                           float,
                           "Mean heart rate should be a float")
 
   def test_hr_intensity(self):
-    print('HR IF = ' + str(self.activity.hr_intensity(160)))
-    self.assertIsInstance(self.activity.hr_intensity(160),
+    print('HR IF = ' + str(self.activity_full.hr_intensity(160)))
+    self.assertIsInstance(self.activity_full.hr_intensity(160),
                           float,
                           "HR-based intensity should be a float")
 
   def test_hr_training_stress(self):
-    print('hrTSS = ' + str(self.activity.hr_training_stress(160)))
-    self.assertIsInstance(self.activity.hr_training_stress(160),
+    print('hrTSS = ' + str(self.activity_full.hr_training_stress(160)))
+    self.assertIsInstance(self.activity_full.hr_training_stress(160),
                           float,
                           "HR-based training stress should be a float")
 
+  def test_source(self):
+    self.assertTrue(self.activity_full.has_source('file'))
+
   def test_equiv_speed(self):
-    self.assertIsInstance(self.activity.equiv_speed,
+    self.assertIsInstance(self.activity_full.equiv_speed(),
+                          pandas.Series,
+                          'Equivalent pace should be a pandas.Series.')
+
+  def test_equiv_speed_alt(self):
+    self.assertIsInstance(self.activity_full.equiv_speed(source_name='google'),
                           pandas.Series,
                           'Equivalent pace should be a pandas.Series.')
 
   def test_mean_speed(self):
-    print('Mean speed = ' + str(self.activity.mean_speed)+' m/s')
-    self.assertIsInstance(self.activity.mean_speed,
+    print('Mean speed = ' + str(self.activity_full.mean_speed)+' m/s')
+    self.assertIsInstance(self.activity_full.mean_speed,
                           float,
                           'Mean speed should be a float')
 
   def test_mean_equiv_speed(self):
-    print('Mean equiv speed = ' + str(self.activity.mean_equiv_speed)+' m/s')
-    self.assertIsInstance(self.activity.mean_equiv_speed,
+    print('Mean equiv speed = %0.2f m/s'
+          % self.activity_full.mean_equiv_speed())
+    self.assertIsInstance(self.activity_full.mean_equiv_speed(),
                           float,
                           'Mean equivalent speed should be a float')
 
+  def test_mean_equiv_speed_alt(self):
+    print('Mean google equiv speed = %0.2f m/s'
+          % self.activity_full.mean_equiv_speed(source_name='google'))
+    self.assertIsInstance(
+        self.activity_full.mean_equiv_speed(source_name='google'),
+        float,
+        'Mean equivalent speed should be a float')
+
 if __name__ == '__main__':
-    unittest.main()
+  unittest.main()
