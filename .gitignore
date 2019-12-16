@@ -47,7 +47,7 @@ activity_files/60min_1200_10.tcx
 activity_files/activity_3993313372.tcx
 
 # Keys
-config.py
+heartandsole/config.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -135,6 +135,7 @@ celerybeat-schedule
 env/
 venv/
 ENV/
+my_env/
 
 # Spyder project settings
 .spyderproject

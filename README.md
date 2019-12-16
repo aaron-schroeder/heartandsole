@@ -1,11 +1,28 @@
 # heartandsole
-heartandsole is a Python library for analysis of running data files.
 
-It's geared toward running. It allows for easy extraction of data such as the
-following from a `.fit` file:
-- elapsed time
-- moving time
-- average heart rate
+> Python library for analysis of running data files.
+
+[![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![License](http://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
+
+---
+
+## Table of Contents                                                                    
+- [Introduction](#introduction)
+- [Dependencies and Installation](#dependencies-and-installation)
+- [Example](#example)
+- [Project Status](#project-status)
+- [References](#references)
+- [Contact](#contact)
+- [License](#license)
+
+---
+
+## Introduction
+
+heartandsole is designed to work with running or walking activity files.
+It reads data from `.fit` or `.tcx` files, cleanses the data, and performs
+calculations, such as the following:
 - running power (based on Dr. Philip Friere Skiba's GOVSS algorithm)
 - average running power
 - normalized running power (based on information publicly available about
@@ -13,6 +30,9 @@ following from a `.fit` file:
 - intensity (based on information publicly available about TrainingPeaks' IF®)
 - training stress (based on information publicly available about
   TrainingPeaks' TSS® and Dr. Philip Friere Skiba's GOVSS algorithm)
+- average heart rate
+- elapsed time
+- moving time
 
 My impetus for this project was to implement a version of Philip Friere Skiba's 
 GOVSS algorithm (with tweaks to better align with the underlying research). 
@@ -27,44 +47,91 @@ projects diverged significantly enough for me to move my fork to a separate
 repository. I am indebted to Michael for writing such a clean, useful,
 easy-to-understand package that served as heartandsole's starting point.
 
-# Dependencies and installation
-This package is currently under construction and the installation will not be successful. Information will be added as soon as the install is ready.
-<!--
-[Pandas](http://pandas.pydata.org/), [NumPy](http://www.numpy.org/), and
-[fitparse](https://github.com/dtcooper/python-fitparse) are required.
+---
 
-`python setup.py install` (or `python setup.py install --user`) to install.
--->
+## Dependencies and Installation
 
-# Example
+[Pandas](http://pandas.pydata.org/), [lxml](https://lxml.de/), [NumPy](http://www.numpy.org/), 
+[python-dateutil](https://dateutil.readthedocs.io/en/stable/), [fitparse](https://github.com/dtcooper/python-fitparse), 
+and [spatialfriend](https://github.com/aaron-schroeder/spatialfriend) are required.
+
+`pip install heartandsole` to install.
+
+---
+
+## Example
 
 heartandsole provides the `Activity` class.
 
 ```python
 import heartandsole
 
-activity = heartandsole.Activity('my_activity.fit')
+fit = heartandsole.FitFileReader('my_activity.fit')
+activity = heartandsole.Activity(fit.data)
 
 print(activity.elapsed_time)
 print(activity.moving_time)
 
-# Also available for heart rate and cadence.
-print(activity.mean_power)
+# Also available for power, equivalent-power flat-ground speed,
+# cadence, and heart rate:
+print(activity.mean_speed)
 
-# Uses power values from .fit file if available,
-# otherwise calculates running power from speed,
-# distance, and elevation data.
+# Calculates running power from speed, and elevation data.
+power = activity.power
+
+# 30-second moving average power is a more suitable
+# proxy for metabolic intensity than instantaneous power.
+power_smooth = activity.power_smooth
+
+# Summarizing activity power with the 4-norm is more representative
+# of intensity than average power.
 print(activity.norm_power)
 
-# Intensity and training stress calculations require
-# a functional threshold power value (in Watts/kg).
-print(activity.intensity(17.0))
+# Intensity and training stress calculations require a threshold 
+# power value (in Watts/kg), which the utility functions can calculate
+# from flat-ground threshold pace (min/mile).
+pwr = heartandsole.powerutils.flat_run_power('6:30')
+print(activity.power_intensity(pwr))
+print(activity.power_training_stress(pwr))
+
+# Intensity and training stress may also be calculated from
+# HR data. This calculation requires a threshold HR value in BPM.
+print(activity.hr_intensity(162))
+print(activity.hr_training_stress(162))
 ```
 
-Construction of an `Activity` parses the `.fit` file and detects periods of
-inactivity. The decision to remove inactive periods is left to the user.
+Construction of a `FitFileReader` parses the `.fit` file and reads the 
+data into a pandas DataFrame.
 
-# References
+Construction of an `Activity` accepts a pandas DataFrame formatted by one
+of the `FileReader` classes, cleanses the data, then detects periods of inactivity.
+
+---
+
+## Project Status
+
+### Complete
+
+- Add capability to read .tcx files.
+
+### Current Activities
+
+- Integrate .tcx file reading into the [file analysis tool](https://trailzealot.com/training/analyze)
+  on my website.
+
+- Make a project wiki so I can be as verbose as I please.
+
+- Make life a little easier with Travis CI.
+
+### Future Work
+
+- Expand file-reading ability to `.gpx`, `.pwx`, and more.
+
+- Expand data cleansing methods in `Activity`.
+
+---
+
+## References
 
 Coggan, A. (2012, June 20). Re: Calculate Normalised Power for an Interval [Online forum comment]. Retrieved June 14, 2017, from http://www.timetriallingforum.co.uk/index.php?/topic/69738-calculate-normalised-power-for-an-interval/&do=findComment&comment=978386
 
@@ -87,7 +154,24 @@ Pugh, L. G. E. (1971). The influence of wind resistance in running and walking a
 
 Skiba, P. F. (2006, September 16). Calculation of Power Output and Quantification of Training Stress in Distance Runners: The Development of the GOVSS Algorithm. _RunScribe_. Retrieved August 20, 2019, from http://runscribe.com/wp-content/uploads/power/GOVSS.pdf
 
-# License
+---
+
+## Contact
+
+Reach out to me at one of the following places!
+
+- Website: <a href="https://trailzealot.com" target="_blank">trailzealot.com</a>
+- LinkedIn: <a href="https://www.linkedin.com/in/aarondschroeder/" target="_blank">linkedin.com/in/aarondschroeder</a>
+- Twitter: <a href="https://twitter.com/trailzealot" target="_blank">@trailzealot</a>
+- Instagram: <a href="https://instagram.com/trailzealot" target="_blank">@trailzealot</a>
+- GitHub: <a href="https://github.com/aaron-schroeder" target="_blank">github.com/aaron-schroeder</a>
+
+---
+
+## License
+
+[![License](http://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
+
 This project is licensed under the MIT License. See
-[LICENSE](https://github.com/aaron-schroeder/heartandsole/blob/master/LICENSE) file
-for details.
+[LICENSE](https://github.com/aaron-schroeder/heartandsole/blob/master/LICENSE)
+file for details.
