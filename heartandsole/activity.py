@@ -61,15 +61,25 @@ class Activity(object):
     self._moving_time = None
     self._norm_power = None
 
-    # Clean up the data that was read in from file.
+    # Assume all null cadence data corresponds to no movement.
     if self.has_cadence:
       self.data['cadence'].fillna(0, inplace=True)
 
+    # Assuming missing elevations only occur at the start of the file
+    # (before satellite acquisition), backfill the first valid value
+    # to the beginning of the DataFrame.
     if self.has_elevation:
       self.data['elevation'].fillna(method='bfill', inplace=True)
     
+    # Assuming that missing elevation values happen exclusively at the
+    # beginning and end of the series: extend the first non-null value
+    # backward to the start of the DataFrame, and extend the last non-null
+    # value forward to the end of the DataFrame.
     if self.has_position:
-      self.data[['lon', 'lat']].fillna(method='bfill').fillna(method='ffill')
+      self.data['lon'].fillna(method='bfill', inplace=True)
+      self.data['lon'].fillna(method='ffill', inplace=True)
+      self.data['lat'].fillna(method='bfill', inplace=True)
+      self.data['lat'].fillna(method='ffill', inplace=True)
 
     if self.has_speed or self.has_distance:
       self._clean_up_speed_and_distance()
@@ -112,8 +122,6 @@ class Activity(object):
       self.data['speed'] = np.gradient(
           self.data['distance'].values,
           self.data.index.get_level_values('offset').seconds)
-      #self.data['speed'] = self.data['distance'].diff() /  \
-      #                     self.data.index.get_level_values('offset').seconds
       self.data['speed'].fillna(0., inplace=True)
 
   def add_elevation_source(self, elev_list, name):
@@ -127,6 +135,7 @@ class Activity(object):
       name: a string to be used as the value of the source index.
     """
     self.data['elevation', name] = elev_list
+    self.data['elevation', name].fillna(method='bfill', inplace=True)
 
   @property
   def file_data(self):
@@ -186,13 +195,9 @@ class Activity(object):
       return None
 
     if self._remove_stopped_periods:
-      return self.data[
-          self.data['cadence'].notnull() & (self.data['cadence'] > 0)
-          & (self.data['speed'] > self.STOPPED_THRESHOLD)]['cadence']
+      return self.data[self.data['speed'] > self.STOPPED_THRESHOLD]['cadence']
 
-    return self.data[
-        self.data['cadence'].notnull() 
-        & (self.data['cadence'] > 0)]['cadence']
+    return self.data['cadence']
 
   @property
   def mean_cadence(self):
@@ -256,6 +261,7 @@ class Activity(object):
       return None
 
     # Assumes each speed value was maintained for 1 second.
+    # TODO: Remove this assumption.
     return self.speed.sum() / self.moving_time.total_seconds()
 
   @property
@@ -298,7 +304,7 @@ class Activity(object):
       return None
 
     if ('power_smooth', source_name) not in self.data.columns:
-      p = self.power(source_name=source_name).copy()
+      p = self.power(source_name=source_name)  #.copy()
       p.index = p.index.droplevel(level='block')
       power_array =  heartandsole.util.moving_average(p, 30)
       self.data['power_smooth', source_name] = power_array
