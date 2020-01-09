@@ -51,6 +51,30 @@ class Activity(object):
     """
     self._remove_stopped_periods = remove_stopped_periods
 
+    # To enforce conformity to 1-second spacing between records,
+    # calulate corrections to the timestamp column. This fixes errors 
+    # due to rounding the time to the second, and due to timekeeping
+    # changes when the device resets its time using GPS. 
+    timesteps = df['timestamp'].diff()
+    timesteps.iloc[0] = datetime.timedelta(seconds=1)
+    errs = datetime.timedelta(seconds=1) - timesteps
+    corrections = errs.cumsum()
+
+    # Correct the timestamp column.
+    df['timestamp'] = df['timestamp'] + corrections
+
+    # Correct the index labels of the offset level. These operations
+    # are equivalent to creating an evenly-1sec-spaced index starting
+    # at the activity start time.
+    # TODO: How to make this efficient and DRY? I named the levels at
+    #       another point, and now I am re-creating and re-naming them.
+    #       Some way to surgically repair level 1 in-place?
+    corrected_offset = df.index.get_level_values('offset') + corrections
+    index_arrays = [df.index.get_level_values('block').to_list(),
+                    corrected_offset.to_list()]
+    df.index = pandas.MultiIndex.from_arrays(index_arrays,
+                                             names=('block', 'offset'))
+
     self.data = df.copy()
 
     # Calculate elapsed time before possibly removing data from

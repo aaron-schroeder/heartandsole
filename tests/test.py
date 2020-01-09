@@ -1,5 +1,6 @@
 import datetime
 
+import fitparse
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 import pandas
@@ -10,7 +11,10 @@ import unittest
 from heartandsole.activity import Activity
 from heartandsole.filereaders import FitFileReader, TcxFileReader
 import heartandsole.powerutils as pu
-from heartandsole import config
+import heartandsole.util
+#from heartandsole import config
+import config
+
 
 class TestRunPower(unittest.TestCase):
 
@@ -60,7 +64,7 @@ class TestRunPower(unittest.TestCase):
 
 class TestTcxFileReader(unittest.TestCase):
   # Integration test: create a TcxFileReader from .tcx file.
-  tcx = TcxFileReader('/home/aaronsch/webapps/aarontakesawalk/trailzealot/media/media/gpx/20190425_110505_Running.tcx')#boulderhikes/activity_4257833732.tcx')
+  tcx = TcxFileReader('activity_files/20190425_110505_Running.tcx')#boulderhikes/activity_4257833732.tcx')
 
   def test_create(self):
     self.assertIsInstance(self.tcx,
@@ -275,6 +279,34 @@ class TestActivity(unittest.TestCase):
         self.activity_full.mean_equiv_speed(source_name='google'),
         float,
         'Mean equivalent speed should be a float')
+
+
+class TestDuplicateTimestamp(unittest.TestCase):
+
+  def print_diffs(self, vals):
+    sum_diffs = 0
+    for i in range(len(vals)-1):
+      time_diff = vals[i+1] - vals[i]
+      if time_diff.total_seconds() != 1:
+        print('%s: %s' % (vals[i+1], time_diff.total_seconds() - 1))
+        sum_diffs += time_diff.total_seconds() - 1
+    print(sum_diffs)
+
+  def setUp(self):
+    # Start with a typical file with duplicated timestamps.
+    reader = FitFileReader('activity_files/lexsort_4318998849.fit')
+    #reader = FitFileReader('activity_files/lexsort_4318995334.fit')
+    #reader = FitFileReader('activity_files/running_4390094641.fit')
+    #reader = FitFileReader('activity_files/runningmo_4386919092.fit')
+
+    #heartandsole.util.print_full(reader.data)
+    #self.print_diffs(reader.data.index.get_level_values('offset'))
+
+    activity = heartandsole.Activity(reader.data)
+    #self.print_diffs(activity.data.index.get_level_values('offset'))
+
+  def test_create(self):
+    pass
 
 if __name__ == '__main__':
   unittest.main()
