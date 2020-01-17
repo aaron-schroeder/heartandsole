@@ -4,7 +4,7 @@ import fitparse
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 import pandas
-#from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 import spatialfriend
 import unittest
 
@@ -12,7 +12,6 @@ from heartandsole.activity import Activity
 from heartandsole.filereaders import FitFileReader, TcxFileReader
 import heartandsole.powerutils as pu
 import heartandsole.util
-#from heartandsole import config
 import config
 
 
@@ -63,14 +62,45 @@ class TestRunPower(unittest.TestCase):
                           "Power should be a ndarray.")
 
 class TestTcxFileReader(unittest.TestCase):
-  # Integration test: create a TcxFileReader from .tcx file.
-  tcx = TcxFileReader('activity_files/20190425_110505_Running.tcx')#boulderhikes/activity_4257833732.tcx')
-
+  def setUp(self):
+    # Integration test: create a TcxFileReader from .tcx file.
+    #self.tcx = TcxFileReader('activity_files/20190425_110505_Running.tcx')
+    self.tcx = TcxFileReader('activity_files/activity_3993313372.tcx')
+                           # 'boulderhikes/activity_4257833732.tcx')
+  
   def test_create(self):
     self.assertIsInstance(self.tcx,
                           TcxFileReader,
                           "tcx is not a TcxFileReader...")
-  
+
+  def test_hdr(self):
+    print(self.tcx.date)
+    print(self.tcx.device)
+    print(self.tcx.distance)
+    print(self.tcx.calories)
+    print(self.tcx.lap_time_seconds)
+    print(self.tcx.get_header_value('UnitId'))
+    print(self.tcx.get_header_value('ProductID'))
+    pass  
+
+
+class TestCompareFileReaders(unittest.TestCase):
+
+  def setUp(self):
+    self.fit = FitFileReader('activity_files/4426508309.fit')
+    self.tcx = TcxFileReader('activity_files/activity_4426508309.tcx')
+
+    # Drop the elevation column from the .tcx DataFrame so we can
+    # compare it to the .fit DataFrame, which has no file elevations.
+    self.tcx.data.drop(columns=['elevation'], inplace=True)
+
+  def test_dataframes_same(self):
+    """Checks that dataframes are identical.
+
+    Structure, indexes, columns, dtypes, and values.
+    """
+    assert_frame_equal(self.fit.data, self.tcx.data)
+
 
 class TestActivity(unittest.TestCase):
 
@@ -80,46 +110,46 @@ class TestActivity(unittest.TestCase):
       'activity_files/2019-05-11-144658-UBERDROID6944-216-1.fit')
   activity_wahoo = Activity(fit_wahoo.data,
                             remove_stopped_periods=False)
-
+  
   # Integration test: create an Activity from a Garmin .fit file.
   # This file does not contain elevation or running dynamics data.
   fit_garmin = FitFileReader('activity_files/3981100861.fit')
   activity_garmin = Activity(fit_garmin.data,
                              remove_stopped_periods=False)
-
+  
   # Integration test: create an Activity from a .tcx file that contains
   # data for all available fields.
   tcx_full = TcxFileReader('activity_files/activity_4257833732.tcx')
   activity_full = Activity(tcx_full.data,
                            remove_stopped_periods=False)
-
+  
   # Integration test: create an Activity from a .tcx file with missing
   # fields. This file has no elevation, speed, or cadence data.
   tcx_sparse = TcxFileReader('activity_files/20190425_110505_Running.tcx')
   activity_sparse = Activity(tcx_sparse.data,
                              remove_stopped_periods=False)
-
+  
   # Integration test: add a new elevation source to an 
   # existing activity.
   el_friend = spatialfriend.Elevation(activity_full.lonlats,
                                       user_gmaps_key=config.my_gmaps_key)
   elevs_google = el_friend.google(units='meters')
   activity_full.add_elevation_source(elevs_google, 'google')
-
+  
   def test_create(self):
-    self.assertIsInstance(self.activity_full,
+    self.assertIsInstance(self.__class__.activity_full,
                           Activity,
                           "activity is not an Activity...")
 
   def test_moving_time(self):
-    print('Moving time = %0.1f mins' 
-          % (self.activity_full.moving_time.total_seconds() / 60)) 
+    #print('Moving time = %0.1f mins' 
+    #      % (self.activity_full.moving_time.total_seconds() / 60)) 
     self.assertIsInstance(self.activity_full.moving_time,
                           datetime.timedelta,
                           "Moving time should be a timedelta")
 
   def test_mean_cadence(self):
-    print('Avg cadence = %0.1f spm' % self.activity_full.mean_cadence)
+    #print('Avg cadence = %0.1f spm' % self.activity_full.mean_cadence)
     self.assertIsInstance(self.activity_full.mean_cadence,
                           float,
                           "Mean cadence should be a float")
@@ -141,7 +171,7 @@ class TestActivity(unittest.TestCase):
                           "Grade should be a Series.")
 
   def test_speed(self):
-    print('speed') if self.activity_full.has_speed else print('no speed')
+    #print('speed') if self.activity_full.has_speed else print('no speed')
     self.assertIsInstance(self.activity_full.speed,
                           pandas.Series,
                           "Speed should be a Series.")
@@ -307,6 +337,7 @@ class TestDuplicateTimestamp(unittest.TestCase):
 
   def test_create(self):
     pass
+
 
 if __name__ == '__main__':
   unittest.main()

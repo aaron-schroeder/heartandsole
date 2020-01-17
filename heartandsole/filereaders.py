@@ -2,6 +2,7 @@ import datetime
 import sys
 
 from dateutil import parser
+from dateutil.tz import tzutc
 import fitparse
 from lxml import etree, objectify
 import numpy as np
@@ -151,8 +152,10 @@ class FitFileReader(BaseFileReader):
     records = list(self.fitfile.get_messages('record'))
 
     # Get elapsed time before modifying the data
-    self.start_time = records[0].get('timestamp').value
-    self.end_time = records[-1].get('timestamp').value
+    start_time_naive = records[0].get('timestamp').value
+    end_time_naive = records[-1].get('timestamp').value
+    self.start_time = start_time_naive.replace(tzinfo=tzutc())
+    self.end_time = end_time_naive.replace(tzinfo=tzutc())
     self.elapsed_time = self.end_time - self.start_time
 
     # This is unique to .fit files.
@@ -192,7 +195,8 @@ class FitFileReader(BaseFileReader):
     event_index = 0
     rows = []
     for record in records:
-      curr_timestamp = record.get('timestamp').value
+      curr_timestamp_naive = record.get('timestamp').value
+      curr_timestamp = curr_timestamp_naive.replace(tzinfo=tzutc())
 
       # Match data record timestamps with event timestamps in order to mark
       # "blocks" as described above. Periods of no movement will be excised
@@ -239,9 +243,14 @@ class FitFileReader(BaseFileReader):
       for field_name in fields:
         field = record.get(field_name)
         if field is not None:
-          row.append(field.value if field.units != 'semicircles'
-                                 or field.value is None
-                                 else field.value * 180 / 2 ** 31)
+          if field.value is None:
+            row.append(field.value)
+          elif field.units == 'semicircles':
+            row.append(field.value * 180 / 2 ** 31)
+          elif isinstance(field.value, datetime.datetime):
+            row.append(field.value.replace(tzinfo=tzutc()))
+          else:
+            row.append(field.value)
         else:
           row.append(None)
 
@@ -268,7 +277,7 @@ class FitFileReader(BaseFileReader):
     rows = []
     timestamps = []
     for m in messages:
-      timestamps.append(m.get('timestamp').value)
+      timestamps.append(m.get('timestamp').value.replace(tzinfo=tzutc()))
 
       row = []
       for field_name in fields:
@@ -385,7 +394,7 @@ class TcxFileReader(BaseFileReader):
 
     # ints
     if field_name in ['heart_rate', 'cadence']:
-      return float(value_str) if value_str is not None else None
+      return int(value_str) if value_str is not None else None
 
     # timestamp. Garmin has specified a format for .tcx datetimes
     # that does not easily lend itself to datetime.strptime.
@@ -393,4 +402,46 @@ class TcxFileReader(BaseFileReader):
       return parser.isoparse(value_str) if value_str is not None else None
 
     # Every field should be caught before this point.
-    return value_str 
+    return value_str
+
+
+  def get_header_value(self, field_name):
+    """Returns the value of the requested header field."""
+    hdr = self.tree.find('//Activity/Creator')
+    return hdr.findtext(field_name)
+
+
+  def get_summary_value(self, field_name):
+    """Compiles summary activity from each lap."""
+    laps = self.tree.xpath('//Lap')
+
+    for lap in laps:
+      lap_time = float(lap.findtext('TotalTimeSeconds'))
+      lap_dist = float(lap.findtext('DistanceMeters'))
+      lap_cals = int(lap.findtext('Calories'))
+      
+
+  @property
+  def date(self):
+    date_str = self.tree.find('//Activity').findtext('Id')
+
+    return parser.isoparse(date_str)
+
+  @property
+  def device(self):
+    return self.get_header_value('Name')
+
+  @property
+  def calories(self):
+    return sum([int(lap.findtext('Calories'))
+                for lap in self.tree.xpath('//Lap')])
+
+  @property
+  def distance(self):
+    return sum([float(lap.findtext('DistanceMeters')) 
+                for lap in self.tree.xpath('//Lap')])
+
+  @property
+  def lap_time_seconds(self):
+    return sum([float(lap.findtext('TotalTimeSeconds')) 
+                for lap in self.tree.xpath('//Lap')])
