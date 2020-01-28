@@ -43,11 +43,13 @@ class Activity(object):
 
     Args:
       df: A pandas.DataFrame representing data read in from an 
-          activity file. Formatted according to the scheme defined by
-          the output of FileReader.data.
+          activity file. Formatted one of two ways: according to the
+          scheme defined by the output of FileReader.data, or according
+          to the scheme defined in Activity.data (two 
       remove_stopped_periods: If True, regions of data with speed below
                               a threshold will be removed from the data.
                               Default is False.
+    TODO(aschroeder): Beef up the checks on the data format.
     """
     self._remove_stopped_periods = remove_stopped_periods
 
@@ -85,41 +87,41 @@ class Activity(object):
     self._moving_time = None
     self._norm_power = None
 
+    # Add a second index level to the columns to distinguish between
+    # identically named columns corresponding to different elevation
+    # data. If the DataFrame already has two column levels, do nothing.
+    if 'elev_source' not in self.data.columns.names:
+      # For fields that have no possible alternate sources, like speed,
+      # leave the elev_source level value blank, so that these columns
+      # can be accessed based on their field name alone.
+      index_tups = [(field_name, 'file') if field_name in self.ELEV_FIELDS
+                    else (field_name, '') for field_name in self.data.columns]
+      multiindex = pandas.MultiIndex.from_tuples(index_tups,
+                                                 names=('field', 'elev_source'))
+      self.data.columns = multiindex
+
     # Assume all null cadence data corresponds to no movement.
     if self.has_cadence:
-      self.data['cadence'].fillna(0, inplace=True)
+      self.data['cadence', ''].fillna(0, inplace=True)
 
     # Assuming missing elevations only occur at the start of the file
     # (before satellite acquisition), backfill the first valid value
     # to the beginning of the DataFrame.
-    if self.has_elevation:
-      self.data['elevation'].fillna(method='bfill', inplace=True)
+    if self.has_source('file'):
+      self.data['elevation', 'file'].fillna(method='bfill', inplace=True)
     
     # Assuming that missing elevation values happen exclusively at the
     # beginning and end of the series: extend the first non-null value
     # backward to the start of the DataFrame, and extend the last non-null
     # value forward to the end of the DataFrame.
     if self.has_position:
-      self.data['lon'].fillna(method='bfill', inplace=True)
-      self.data['lon'].fillna(method='ffill', inplace=True)
-      self.data['lat'].fillna(method='bfill', inplace=True)
-      self.data['lat'].fillna(method='ffill', inplace=True)
+      self.data['lon', ''].fillna(method='bfill', inplace=True)
+      self.data['lon', ''].fillna(method='ffill', inplace=True)
+      self.data['lat', ''].fillna(method='bfill', inplace=True)
+      self.data['lat', ''].fillna(method='ffill', inplace=True)
 
     if self.has_speed or self.has_distance:
       self._clean_up_speed_and_distance()
-
-    # Add a MultiIndex to the DataFrame to distinguish between
-    # identically-named columns calculated with different elevation
-    # data. For fields that have no possible alternate sources,
-    # like speed, leave the elev_source level value blank, so that
-    # these columns can be accessed based on their field name alone.
-    index_tups = [(field_name, 'file') if field_name in self.ELEV_FIELDS
-                  else (field_name, '') for field_name in self.data.columns]
-    multiindex = pandas.MultiIndex.from_tuples(index_tups,
-                                               names=('field', 'elev_source'))
-    #multiindex = pandas.MultiIndex.from_product([self.data.columns, ['file']],
-    #                                            names=('field', 'elev_source'))
-    self.data.columns = multiindex
 
   def _clean_up_speed_and_distance(self):
     """Infers true value of null / missing speed and distance values."""
@@ -127,14 +129,14 @@ class Activity(object):
       # If speed is NaN, assume no movement.
       # TODO(aschroeder) does it make sense to fill these in?
       # Should they be left as null and handled in @property?
-      self.data['speed'].fillna(0., inplace=True)
+      self.data['speed', ''].fillna(0., inplace=True)
 
     if self.has_distance:
       # If distance is NaN, fill in with first non-NaN distance.
       # This assumes the dataframe has no trailing NaN distances.
       # TODO(aschroeder) does it make sense to fill these in?
       # Should they be left as null and handled in @property?
-      self.data['distance'].fillna(method='bfill', inplace=True)
+      self.data['distance', ''].fillna(method='bfill', inplace=True)
 
     # TODO: If speed exists but distance does not, calculate distances.
     if self.has_speed and not self.has_distance:
@@ -143,10 +145,10 @@ class Activity(object):
     # If distance exists but speed does not, calculate speeds.
     # TODO: Filter this speed series for noise.
     if self.has_distance and not self.has_speed:
-      self.data['speed'] = np.gradient(
-          self.data['distance'].values,
+      self.data['speed', ''] = np.gradient(
+          self.data['distance', ''].values,
           self.data.index.get_level_values('offset').seconds)
-      self.data['speed'].fillna(0., inplace=True)
+      self.data['speed', ''].fillna(0., inplace=True)
 
   def add_elevation_source(self, elev_list, name):
     """Adds an alternate elevation column to the DataFrame.
@@ -454,10 +456,10 @@ class Activity(object):
     intensity is similar to TrainingPeaks hrTSS value. This calculation
     uses lactate-normalized heart rate, rather than average heart rate.
     This intensity factor should agree with the power-based intensity
-    factor, Because heart rate behaves similarly to a 30-second moving
+    factor, because heart rate behaves similarly to a 30-second moving
     average of power, this heart rate intensity factor should agree with
     the power-based intensity factor. Both calculations involve a
-    4-norm of power (or a proxy in this case).
+    4-norm of power (or of a proxy in this case).
 
     Args:
       threshold_hr: Threshold heart rate in bpm.
@@ -487,3 +489,33 @@ class Activity(object):
 
     return su.training_stress(self.hr_intensity(threshold_hr),
                               self.moving_time.total_seconds())
+
+  @classmethod
+  def from_csv(cls, filepath):
+    """Creates and returns an Activity from a .csv file.
+
+    Args:
+      filepath: Path to a .csv file containing data that is structured
+                identically to activity.data.to_csv(): a multi-level
+                index with block and offset, and a multi-level column
+                system with field and elev_source.
+    """ 
+    # Read the data from the csv file, assuming the third column of the
+    # file represents timestamp and parsing it as a datetime.
+    data = pandas.read_csv(filepath, index_col=[0, 1],
+                           header=[0, 1], parse_dates=[2])
+    
+    # Convert the index's 'offset' level to TimedeltaIndex.
+    data.index = data.index.set_levels(
+        pandas.TimedeltaIndex(data.index.get_level_values('offset')),
+        level='offset')
+
+    # Fix column level values, an artifact of blank level values in a
+    # .csv file.
+    fields = data.columns.get_level_values('field')
+    srcs = data.columns.get_level_values('elev_source').str.replace('Un.*', '')
+    col_tups = [(field, src) for field, src in zip(fields, srcs)]
+    data.columns = pandas.MultiIndex.from_tuples(col_tups,
+                                                 names=data.columns.names)
+
+    return cls(data, remove_stopped_periods=False)
