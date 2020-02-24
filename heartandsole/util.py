@@ -1,5 +1,6 @@
 """Utility functions."""
 import datetime
+import math
 
 import numpy as np
 import pandas
@@ -72,6 +73,23 @@ def moving_average(time_series, window_len):
     out[j] = window_area / window_len
 
   return out
+
+
+def ewma(x_array, half_life):
+  """Half-life in seconds."""
+  x_array = list(x_array)
+
+  # Calculate alpha from half-life.
+  alpha = 1 - math.exp(-math.log(2) / half_life)
+
+  # Initialize the moving average as if there is a train of zeros
+  # at the beginning of the data.
+  avgs = [alpha * x_array[0]]
+  for i in range(1, len(x_array)):
+    avgs.append(alpha * x_array[i] + (1 - alpha) * avgs[i-1])
+
+  return avgs
+
 
 
 def time_from_timestring(timestring):

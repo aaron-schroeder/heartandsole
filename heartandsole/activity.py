@@ -286,9 +286,18 @@ class Activity(object):
     if not self.has_speed:
       return None
 
+    # Method 1: Calculate average speed based on the speed trace.
     # Assumes each speed value was maintained for 1 second.
     # TODO: Remove this assumption.
-    return self.speed.sum() / self.moving_time.total_seconds()
+    #return self.speed.sum() / self.moving_time.total_seconds()
+
+    # Method 2: Calculate average speed based on total distance divided
+    # by total time. This is the typical way to calculate average speed.
+    # In files with both a speed and a distance field, this method will
+    # produce a different average speed than Method 1. This is because
+    # the instantaneous speed trace is smoothed and does not directly
+    # agree with the cumulative distance trace.
+    return self.distance[-1] / self.moving_time.total_seconds()
 
   @property
   def distance(self):
@@ -308,13 +317,16 @@ class Activity(object):
       return None
 
     if ('grade', source_name) not in self.data.columns:
-      grade_array = sf.grade_smooth(self.distance, self.elevation(source_name))
+      #grade_array = sf.grade_smooth(self.distance, self.elevation(source_name))
+      grade_array = sf.grade_smooth_time(self.distance,
+                                         self.elevation(source_name))
       self.data['grade', source_name] = grade_array 
 
     #return pandas.Series(data=grade_array, index=self.data.index)    
     return self.data['grade', source_name]
 
   def power(self, source_name='file'):
+    """TODO: Change name to something like power_inst."""
     if not (self.has_speed and self.has_source(source_name)):
       return None
 
@@ -326,13 +338,15 @@ class Activity(object):
     return self.data['power', source_name]
 
   def power_smooth(self, source_name='file'):
+    """TODO: Change name to something like power_ewma."""
     if not (self.has_speed and self.has_source(source_name)):
       return None
 
     if ('power_smooth', source_name) not in self.data.columns:
       p = self.power(source_name=source_name)  #.copy()
       p.index = p.index.droplevel(level='block')
-      power_array =  heartandsole.util.moving_average(p, 30)
+      #power_array =  heartandsole.util.moving_average(p, 30)
+      power_array =  heartandsole.util.ewma(p, 20)
       self.data['power_smooth', source_name] = power_array
 
     return self.data['power_smooth', source_name]
