@@ -20,6 +20,13 @@
 
 ## Introduction
 
+<!--:warning::boom:-->
+:zap:**Update**:zap: This project was my first real crack at activity file data analysis,
+and it is a bit of a mess currently. I am working on breaking out individual
+functionalities into separate packages. I will update this readme to refer
+interested users to my new self-contained, less messy projects. Stay tuned,
+and check out the [Project Status](#project-status) section below for specifics.
+
 heartandsole is designed to work with running or walking activity files.
 It reads data from `.fit` or `.tcx` files, cleanses the data, and performs
 calculations, such as the following:
@@ -116,18 +123,28 @@ of the `FileReader` classes, cleanses the data, then detects periods of inactivi
 
 ### Current Activities
 
-- Integrate .tcx file reading into the [file analysis tool](https://trailzealot.com/training/analyze)
-  on my website.
+- De-clutter this project, as it has splintered into many separate packages and projects. Refer users
+  to my new projects that accomplish the functionality once found here.
 
-- Make a project wiki so I can be as verbose as I please.
+<!--- Integrate .tcx file reading into the [file analysis tool](https://trailzealot.com/training/analyze)
+  on my website. -->
 
-- Make life a little easier with Travis CI.
+<!--- Make life a little easier with Travis CI. -->
 
-### Future Work
+### Future Work (likely in other repos)
 
-- Expand file-reading ability to `.gpx`, `.pwx`, and more.
+- Expand capability to read running activity files: `.gpx`, `.pwx`, `.csv`, ...
+
+- Break out algorithms into separate packages (separate from `spatialfriend`)
+  - Position and distance
+  - Elevation and grade (filtering series)
+  - Power/energy (mechanical and metabolic) and force
+  - Long-term training stress
+  - ...
 
 - Expand data cleansing methods in `Activity`.
+
+- Make a project wiki so I can be as verbose as I please.
 
 ---
 
@@ -158,13 +175,13 @@ Skiba, P. F. (2006, September 16). Calculation of Power Output and Quantificatio
 
 ## Contact
 
-Reach out to me at one of the following places!
+You can get in touch with me at the following places:
 
-- Website: <a href="https://trailzealot.com" target="_blank">trailzealot.com</a>
+<!-- - Website: <a href="https://trailzealot.com" target="_blank">trailzealot.com</a>-->
+- GitHub: <a href="https://github.com/aaron-schroeder" target="_blank">github.com/aaron-schroeder</a>
 - LinkedIn: <a href="https://www.linkedin.com/in/aarondschroeder/" target="_blank">linkedin.com/in/aarondschroeder</a>
 - Twitter: <a href="https://twitter.com/trailzealot" target="_blank">@trailzealot</a>
 - Instagram: <a href="https://instagram.com/trailzealot" target="_blank">@trailzealot</a>
-- GitHub: <a href="https://github.com/aaron-schroeder" target="_blank">github.com/aaron-schroeder</a>
 
 ---
 
