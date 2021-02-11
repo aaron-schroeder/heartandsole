@@ -6,6 +6,17 @@
 [![License](http://img.shields.io/:license-mit-blue.svg)](http://badges.mit-license.org)
 
 ---
+<!--:warning::boom:-->
+## :zap: Project Update :zap: 
+
+This project and its sister project [`spatialfriend`](https://github.com/aaron-schroeder/spatialfriend)
+were my first real crack at activity file data analysis, and they do not reflect my
+current standards. I am working on breaking out individual functionalities into 
+separate packages. I will update the `README` of both packages to refer interested
+users to my new self-contained, less messy projects. Stay tuned, and check out the 
+[Project Status](#project-status) section below for specifics.
+
+---
 
 ## Table of Contents                                                                    
 - [Introduction](#introduction)
@@ -19,13 +30,6 @@
 ---
 
 ## Introduction
-
-<!--:warning::boom:-->
-:zap:**Update**:zap: This project was my first real crack at activity file data analysis,
-and it is a bit of a mess currently. I am working on breaking out individual
-functionalities into separate packages. I will update this readme to refer
-interested users to my new self-contained, less messy projects. Stay tuned,
-and check out the [Project Status](#project-status) section below for specifics.
 
 heartandsole is designed to work with running or walking activity files.
 It reads data from `.fit` or `.tcx` files, cleanses the data, and performs
@@ -119,7 +123,9 @@ of the `FileReader` classes, cleanses the data, then detects periods of inactivi
 
 ### Complete
 
-- Add capability to read .tcx files.
+- Add capability to read .tcx files 
+  - :tada: Now in [`py-activityreaders`](https://github.com/aaron-schroeder/py-activityreaders),
+    where I will continue developing this feature.
 
 ### Current Activities
 
@@ -133,7 +139,8 @@ of the `FileReader` classes, cleanses the data, then detects periods of inactivi
 
 ### Future Work (likely in other repos)
 
-- Expand capability to read running activity files: `.gpx`, `.pwx`, `.csv`, ...
+- [`py-activityreaders`](https://github.com/aaron-schroeder/py-activityreaders): expand capability to
+  read running activity files: `.gpx`, `.pwx`, `.csv`, ...
 
 - Break out algorithms into separate packages (separate from `spatialfriend`)
   - Position and distance
