@@ -123,9 +123,8 @@ of the `FileReader` classes, cleanses the data, then detects periods of inactivi
 
 ### Complete
 
-- Add capability to read .tcx files 
-  - :tada: Now in [`py-activityreaders`](https://github.com/aaron-schroeder/py-activityreaders),
-    where I will continue developing this feature.
+- Add capability to read .tcx files: :tada: Now in [`py-activityreaders`](https://github.com/aaron-schroeder/py-activityreaders),
+  where I will continue developing this feature.
 
 ### Current Activities
 
@@ -139,12 +138,12 @@ of the `FileReader` classes, cleanses the data, then detects periods of inactivi
 
 ### Future Work (likely in other repos)
 
-- [`py-activityreaders`](https://github.com/aaron-schroeder/py-activityreaders): expand capability to
-  read running activity files: `.gpx`, `.pwx`, `.csv`, ...
+- Expand capability to read running activity files( `.gpx`, `.pwx`, `.csv`)
+  :tada: [`py-activityreaders`](https://github.com/aaron-schroeder/py-activityreaders) package
 
 - Break out algorithms into separate packages (separate from `spatialfriend`)
   - Position and distance
-  - Elevation and grade (filtering series)
+  - Elevation and grade (filtering series): :tada: [`py-elevation`](https://github.com/aaron-schroeder/py-elevation) package
   - Power/energy (mechanical and metabolic) and force
   - Long-term training stress
   - ...
