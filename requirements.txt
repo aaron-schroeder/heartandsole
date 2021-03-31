@@ -1,6 +1,6 @@
 python-dateutil==2.7.3
 numpy==1.15.0
 pandas==0.25
-lxml==4.2.5
+lxml==4.6.3
 fitparse==1.1.0
 spatialfriend==0.0.10
