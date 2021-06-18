@@ -88,7 +88,7 @@ file for details.
 
 ## Documentation
 
-The official documentation is hosted on readthedocs.io: https://heartandsole.readthedocs.io/en/stable
+The official documentation is hosted on readthedocs.io: https://heartandsole.readthedocs.io/en/stable.
 
 ## Background
 
@@ -108,7 +108,7 @@ easy-to-understand package that served as heartandsole's starting point.
 
 ## Contact
 
-Reach out to me at one of the following places!
+You can get in touch with me at the following places:
 
 - Website: [trailzealot.com](https://trailzealot.com)
 - LinkedIn: [linkedin.com/in/aarondschroeder](https://www.linkedin.com/in/aarondschroeder/)
