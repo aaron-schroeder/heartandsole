@@ -1,5 +1,12 @@
+.vscode/
+
 # Keys
 heartandsole/config.py
+
+# WIP/baggage
+old_*
+dontrun*
+power*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -26,6 +33,10 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# sphinx build directory
+docs/_build
+*._rst
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -70,6 +81,13 @@ my_env/
 .mypy_cache/
 
 .DS_Store
+
+# Documentation generated files #
+#################################
+docs/source/generated
+docs/source/reference/api
+docs/source/_static/*.html
+docs/source/savefig/
 
 # Stuff on my local machine.
 test_functions_fitfile.py

@@ -1,0 +1,26 @@
+.. _whatsnew_0020:
+
+What's new in 0.0.20 (June 18, 2021)
+-----------------------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0020.overhaul:
+
+Overhaul
+^^^^^^^^
+
+Rather than document every little change, let's just pretend this is the
+first release. I will document incremental changes from here!
+
+Documentation and `README <https://github.com/aaron-schroeder/heartandsole/blob/master/README.md>`_
+have been updated to explain the current features.
+
+.. _whatsnew_0020.docs:
+
+Documentation changes
+~~~~~~~~~~~~~~~~~~~~~
+
+- Formal documentation on readthedocs
+

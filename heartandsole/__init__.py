@@ -1,5 +1,9 @@
-from heartandsole.activity import Activity
-from heartandsole.filereaders import FitFileReader, TcxFileReader
+from heartandsole.core.activity import Activity
 
-#__version__ = '0.0.1'
-__all__ = ['Activity', 'FitFileReader', 'TcxFileReader']
+import heartandsole.api
+from heartandsole.util import time_from_timestring, timestring_from_time
+
+__version__ = '0.0.20'
+__all__ = [
+  'Activity',
+]
