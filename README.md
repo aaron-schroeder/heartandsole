@@ -42,7 +42,7 @@ calculations:
 
  - [fitparse](https://github.com/dtcooper/python-fitparse) allows data
    to be read in from `.fit` files.
- - [activereader](https://github.com/aaron-schroeder/pandas-xyz) allows data
+ - [activereader](https://github.com/aaron-schroeder/activereader) allows data
    to be read in from `.tcx` and `.gpx` files.
  - [pandas-xyz](https://github.com/aaron-schroeder/pandas-xyz) allows geospatial
    calculations, like converting GPS coordinates to distance and determining
