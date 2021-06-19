@@ -43,6 +43,9 @@ setup(
   long_description=readme,
   long_description_content_type='text/markdown',
   url='https://github.com/aaron-schroeder/heartandsole',
+  project_urls={
+    'Documentation': 'https://heartandsole.readthedocs.io/en/stable/',
+  },
   packages=['heartandsole'],
   install_requires=requirements,
   license='MIT License',
