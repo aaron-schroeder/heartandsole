@@ -42,6 +42,7 @@ It can be checked out using git and installed like so:
 
   git clone git://github.com/aaron-schroeder/heartandsole.git
   cd heartandsole
+  pip install -r requirements.txt
   pip install .
 
 
@@ -55,8 +56,6 @@ Package                                                          Minimum support
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.15.0
 `Pandas <https://pandas.pydata.org>`__                           1.0.0
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
-`SciPy <https://www.scipy.org/scipylib/index.html>`__            1.6.3
 ================================================================ ==========================
 
 .. _install.optional_dependencies:

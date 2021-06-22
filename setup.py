@@ -46,7 +46,8 @@ setup(
   project_urls={
     'Documentation': 'https://heartandsole.readthedocs.io/en/stable/',
   },
-  packages=['heartandsole'],
+  packages=find_packages(where='heartandsole'),
+  package_dir={'': 'heartandsole'},
   install_requires=requirements,
   license='MIT License',
   classifiers=[

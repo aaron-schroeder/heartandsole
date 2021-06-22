@@ -28,7 +28,8 @@ class PositionField(ActivityField):
     Returns:
       float
     """
-    return 0.5 * (self.stream.max() + self.stream.min())
+    if self.stream is not None:
+      return 0.5 * (self.stream.max() + self.stream.min())
 
 
 class LatField(PositionField):

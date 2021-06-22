@@ -1,0 +1,14 @@
+.. _whatsnew_0021:
+
+What's new in 0.0.21 (June 22, 2021)
+------------------------------------
+
+.. _whatsnew_0021.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed issue where subpackages were not included by setup.py.
+- Position accessor :meth:`center` now returns None if the stream is
+  missing rather than trying to perform operations on it.
+
