@@ -1,0 +1,13 @@
+.. _whatsnew_0022:
+
+What's new in 0.0.22 (June 23, 2021)
+------------------------------------
+
+.. _whatsnew_0022.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed issue where subpackages were included incorrectly in setup.py
+  (they appeared as top-level packages).
+
