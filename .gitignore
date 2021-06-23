@@ -7,6 +7,7 @@ heartandsole/config.py
 old_*
 dontrun*
 power*
+exclude/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
