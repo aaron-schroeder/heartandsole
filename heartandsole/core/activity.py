@@ -351,32 +351,35 @@ class Activity(object):
 
     # ------------------------------------------------------------------
     # Add 'bout' and 'lap' columns to record DF. 
+    # TODO: Figure out how to make this not take so long. It ruins the
+    # read-in process for large files. In general, I'll leave off the
+    # lap/bout feature for all files for now.
 
     # If the record timestamp straddles two laps, put it into the
     # earlier lap.
-    activity.records['lap'] = [
-      activity.laps.index[
-        activity.timestamp.laps['start'].le(timestamp_rec)
-        & activity.timestamp.laps['end'].ge(timestamp_rec)
-        # laps[f'{TIMESTAMP}_start'].le(timestamp_rec)
-        # & laps[f'{TIMESTAMP}_end'].ge(timestamp_rec)
-      ][0]
-      for timestamp_rec in activity.timestamp.stream
-    ]
+    # activity.records['lap'] = [
+    #   activity.laps.index[
+    #     activity.timestamp.laps['start'].le(timestamp_rec)
+    #     & activity.timestamp.laps['end'].ge(timestamp_rec)
+    #     # laps[f'{TIMESTAMP}_start'].le(timestamp_rec)
+    #     # & laps[f'{TIMESTAMP}_end'].ge(timestamp_rec)
+    #   ][0]
+    #   for timestamp_rec in activity.timestamp.stream
+    # ]
 
-    events = _build_dataframe_from_msg('event')
-    start_events = events[events['event_type'] == 'start'].reset_index()
-    pause_events = events[events['event_type'] == 'stop_all'].reset_index()
+    # events = _build_dataframe_from_msg('event')
+    # start_events = events[events['event_type'] == 'start'].reset_index()
+    # pause_events = events[events['event_type'] == 'stop_all'].reset_index()
 
-    # If the record timestamp straddles two bouts, put it into the
-    # earlier bout. (That should be impossible, but JIC)
-    activity.records['bout'] = [
-      start_events.index[
-        start_events['timestamp'].le(timestamp_rec)
-        & pause_events['timestamp'].ge(timestamp_rec)
-      ][0]
-      for timestamp_rec in activity.timestamp.stream
-    ]
+    # # If the record timestamp straddles two bouts, put it into the
+    # # earlier bout. (That should be impossible, but JIC)
+    # activity.records['bout'] = [
+    #   start_events.index[
+    #     start_events['timestamp'].le(timestamp_rec)
+    #     & pause_events['timestamp'].ge(timestamp_rec)
+    #   ][0]
+    #   for timestamp_rec in activity.timestamp.stream
+    # ]
 
     # ------------------------------------------------------------------
 
@@ -467,11 +470,10 @@ class Activity(object):
       for tp in reader.trackpoints
     ])
 
-    # This gives us the RECORDED time during a lap - subtracts paused
-    # time. At least allows me to identify laps that contain pauses.
-    records['lap'] = [
-      i for i, l in enumerate(reader.laps) for t in l.trackpoints
-    ]
+    # TODO: Rethink how I want to use this lap column.
+    # records['lap'] = [
+    #   i for i, l in enumerate(reader.laps) for t in l.trackpoints
+    # ]
 
     # Make the lap column into an additional index level.
     # TODO: Consider if 'time' or 'timestamp' might make a good

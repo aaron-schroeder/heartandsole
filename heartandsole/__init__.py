@@ -3,7 +3,7 @@ from heartandsole.core.activity import Activity
 import heartandsole.api
 from heartandsole.util import time_from_timestring, timestring_from_time
 
-__version__ = '0.0.22'
+__version__ = '0.0.23'
 # __all__ = [
 #   'Activity',
 # ]

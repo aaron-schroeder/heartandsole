@@ -1,0 +1,14 @@
+.. _whatsnew_0023:
+
+What's new in 0.0.23 (June 30, 2021)
+------------------------------------
+
+.. _whatsnew_0023.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Removed lap/bout inference from :meth:`Activity.from_fit` because it
+  made file read-in take forever. Will reconsider the approach in the
+  future.
+
