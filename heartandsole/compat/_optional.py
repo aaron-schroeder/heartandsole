@@ -2,8 +2,13 @@
 
 https://github.com/pandas-dev/pandas/blob/v1.2.4/pandas/compat/_optional.py
 
+NOTE:
+  * distutils discontinued here:
+    https://github.com/pandas-dev/pandas/blob/f40e58cc50abcd03efae372df0586467a957f695/pandas/compat/_optional.py
+    https://github.com/pandas-dev/pandas/pull/41207
+
 '''
-import distutils
+import distutils.version
 import importlib
 import sys
 import warnings
@@ -106,7 +111,6 @@ def import_optional_dependency(
   minimum_version = min_version if min_version is not None else VERSIONS.get(parent)
   if minimum_version:
     version = get_version(module_to_get)
-    # if Version(version) < Version(minimum_version):
     if distutils.version.LooseVersion(version) < minimum_version:
       msg = (
         f'Heartandsole requires version "{minimum_version}" or newer of "{parent}" '
