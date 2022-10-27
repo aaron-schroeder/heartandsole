@@ -19,7 +19,7 @@ import warnings
 VERSIONS = {
   'fitparse': '1.1.0',
   'pandas_xyz': '0.0.5',
-  'activereader': '0.0.1',
+  'activereader': '0.0.2',
   # 'query': 0.0.1,
 }
 

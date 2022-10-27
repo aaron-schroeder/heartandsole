@@ -3,10 +3,12 @@ wheel==0.33.1
 twine==1.13.0
 docutils<0.17
 python-dateutil>=2.7.3
-activereader>=0.0.1
+# activereader>=0.0.2  # use once published
+git+https://github.com/aaron-schroeder/activereader.git  # changes in development
 numpy>=1.15.0
 pandas>=1.0.0
 pandas-xyz>=0.0.5
+plotly
 fitparse>=1.1.0
 scipy>=1.6.3
 ipython>=7.24.1

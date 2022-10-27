@@ -199,7 +199,10 @@ class Activity(object):
       total_timer_time=f'{TIME}_timer',
     ))
 
-    activity_series = activities.iloc[0]
+    if len(activities) > 1:
+      raise ValueError('multi-activity files not supported')
+    elif len(activities) == 1:
+      activity_series = activities.iloc[0]
 
     # 'session' messages. Typically only one row. Exception if not.
     # Fields:
@@ -217,39 +220,41 @@ class Activity(object):
     sessions = _build_dataframe_from_msg('session')
     if len(sessions) > 1:
       raise ValueError('multi-session files not supported')
-    
-    sessions = sessions.rename(columns=dict(
-      start_time=f'{TIMESTAMP}_start',
-      timestamp=f'{TIMESTAMP}_end',
-      start_position_lat=f'{LAT}_start',
-      start_position_long=f'{LON}_start',
-      total_elapsed_time=f'{TIME}_elapsed',
-      total_timer_time=f'{TIME}_timer',
-      total_distance=f'{DISTANCE}_total',
-      total_calories='calories',
-      avg_speed=f'{SPEED}_avg',
-      max_speed=f'{SPEED}_max',
-      total_ascent=f'{ELEVATION}_gain',
-      total_descent=f'{ELEVATION}_loss',
-      avg_heart_rate=f'{HEARTRATE}_avg',
-      max_heart_rate=f'{HEARTRATE}_max',
-      avg_running_cadence=f'{CADENCE}_avg',
-      max_running_cadence=f'{CADENCE}_max',
-    ))
+    elif len(sessions) == 1:    
+      sessions = sessions.rename(columns=dict(
+        start_time=f'{TIMESTAMP}_start',
+        timestamp=f'{TIMESTAMP}_end',
+        start_position_lat=f'{LAT}_start',
+        start_position_long=f'{LON}_start',
+        total_elapsed_time=f'{TIME}_elapsed',
+        total_timer_time=f'{TIME}_timer',
+        total_distance=f'{DISTANCE}_total',
+        total_calories='calories',
+        avg_speed=f'{SPEED}_avg',
+        max_speed=f'{SPEED}_max',
+        total_ascent=f'{ELEVATION}_gain',
+        total_descent=f'{ELEVATION}_loss',
+        avg_heart_rate=f'{HEARTRATE}_avg',
+        max_heart_rate=f'{HEARTRATE}_max',
+        avg_running_cadence=f'{CADENCE}_avg',
+        max_running_cadence=f'{CADENCE}_max',
+      ))
+      session = sessions.iloc[0]
 
-    session = sessions.iloc[0]
+      # Verify that the session and activity data is the same.
+      for field in [f'{TIMESTAMP}_end', f'{TIME}_timer']:
+        if activity_series[field] != session[field]:
+          # raise ValueError(f'Activity and session data disagree for {field}')
+          warnings.warn(
+            f'Activity and session data disagree for {field}: '
+            f'(Activity = {activity_series[field]}; Session = {session[field]}). '
+            f'Session values are used by default.'
+          )
 
-    # Verify that the session and activity data is the same.
-    for field in [f'{TIMESTAMP}_end', f'{TIME}_timer']:
-      if activity_series[field] != session[field]:
-        # raise ValueError(f'Activity and session data disagree for {field}')
-        warnings.warn(
-          f'Activity and session data disagree for {field}: '
-          f'(Activity = {activity_series[field]}; Session = {session[field]}). '
-          f'Session values are used by default.'
-        )
+      summary = session
 
-    summary = session
+    else:
+      summary = None
 
     # ['timestamp', 'start_time', 'start_position_lat', 'start_position_long',
     #  'end_position_lat', 'end_position_long', 'total_elapsed_time',
@@ -433,8 +438,10 @@ class Activity(object):
 
     if len(activities) > 1:
       raise ValueError('multi-activity files not supported')
-
-    summary = activities.iloc[0]
+    elif len(activities) == 1:
+      summary = activities.iloc[0]
+    else:
+      summary = None
 
     laps = pd.DataFrame.from_records([
       # lap.to_dict()
@@ -531,8 +538,15 @@ class Activity(object):
 
     if len(activities) > 1:
       raise ValueError('multi-activity files not supported')
+    elif len(activities) == 1:
+      summary = pd.concat([summary, activities.iloc[0]])
+    else:
+      summary['title'] = reader.name
 
-    summary = pd.concat([summary, activities.iloc[0]])
+    if len(reader.trackpoints) > 0:
+      points = reader.trackpoints
+    else:
+      points = reader.routepoints
 
     records = pd.DataFrame.from_records([
       {
@@ -542,7 +556,7 @@ class Activity(object):
         ELEVATION: tp.altitude_m,
         CADENCE: tp.cadence_rpm,
         HEARTRATE: tp.hr,
-      } for tp in reader.trackpoints
+      } for tp in points
     ])
     
     # TODO: Figure out how laps are represented in gpx files, if at all.

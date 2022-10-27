@@ -72,7 +72,7 @@ the method requiring that dependency is called.
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-activereader              0.0.1              TCX/GPX file reader for :meth:`Activity.from_tcx` and 
+activereader              0.0.2              TCX/GPX file reader for :meth:`Activity.from_tcx` and 
                                              :meth:`Activity.from_gpx`
 fitparse                  1.1.0              FIT file reader for :meth:`Activity.from_fit`
 pandas-xyz                0.0.5              Geospatial calculations like elevation profile smoothing and
