@@ -12,7 +12,15 @@ including other versions of heartandsole.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_0024.enhancements.support_python_versions:
+.. _whatsnew_0024.enhancements.route_files:
+
+Reading route files
+^^^^^^^^^^^^^^^^^^^
+
+Activity creation methods :meth:`Activity.from_fit`, :meth:`Activity.from_gpx`,
+and :meth:`Activity.from_tcx` can now read route files in addition to activity
+files. Previously, these methods did not know what to do when confronted with 
+these files, which are formatted slightly differently.
 
 Support and testing for Python versions 3.8+
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,7 +84,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
-|                 |                 |    X    |
+| activereader    | 0.0.2           |    X    |
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.

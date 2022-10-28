@@ -39,6 +39,7 @@ SUMMARY_TYPE_CHECKERS = {
 LAP_DTYPE_CHECKERS = {
   'time_timer': pd.api.types.is_float_dtype,
   'timestamp_start': pd.api.types.is_datetime64tz_dtype,
+  'timestamp_end': pd.api.types.is_datetime64tz_dtype,
   'distance_total': pd.api.types.is_float_dtype,
   'speed_max': pd.api.types.is_float_dtype,
   'speed_avg': pd.api.types.is_float_dtype,
@@ -120,6 +121,14 @@ class TestGpx(FileReaderTestMixin, unittest.TestCase):
     'cadence', 'heartrate']
 
 
+class TestGpxCourse(FileReaderTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testcourse.gpx')
+  READER = Activity.from_gpx
+  EXPECTED_SUMMARY_ROWS = ['title']
+  EXPECTED_LAP_COLS = []
+  EXPECTED_RECORD_COLS = ['timestamp', 'time', 'lat', 'lon', 'elevation']
+
+
 class TestTcx(FileReaderTestMixin, unittest.TestCase):
   TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testdata.tcx')
   READER = Activity.from_tcx
@@ -139,6 +148,15 @@ class TestTcx(FileReaderTestMixin, unittest.TestCase):
   #   cls.tcx_sparse = TcxFileReader('activity_files/20190425_110505_Running.tcx')
 
 
+class TestTcxCourse(FileReaderTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testcourse.tcx')
+  READER = Activity.from_tcx
+  EXPECTED_SUMMARY_ROWS = []
+  EXPECTED_LAP_COLS = ['time_timer', 'distance_total']
+  EXPECTED_RECORD_COLS = ['timestamp', 'time', 'lat', 'lon', 'elevation',
+    'distance']
+
+
 class TestFit(FileReaderTestMixin, unittest.TestCase):
   TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testdata.fit')
   READER = Activity.from_fit
@@ -146,7 +164,7 @@ class TestFit(FileReaderTestMixin, unittest.TestCase):
     'distance_total', 'calories', 'speed_avg', 'speed_max', 'elevation_gain',
     'elevation_loss', 'heartrate_avg', 'heartrate_max', 'cadence_avg',
     'cadence_max', 'sport']
-  EXPECTED_LAP_COLS = ['time_timer', 'timestamp_start', 'distance_total', 'speed_max',
+  EXPECTED_LAP_COLS = ['timestamp_start', 'distance_total', 'speed_max',
     'speed_avg', 'calories', 'cadence_avg', 'cadence_max', 'heartrate_avg', 
     'trigger_method']
   EXPECTED_RECORD_COLS = ['timestamp', 'time', 'lat', 'lon', 'elevation',
@@ -160,6 +178,15 @@ class TestFit(FileReaderTestMixin, unittest.TestCase):
 
   #   # This file does not contain elevation or running dynamics data.
   #   cls.fit_garmin = FitFileReader('activity_files/3981100861.fit')
+
+
+class TestFitCourse(FileReaderTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testcourse.fit')
+  READER = Activity.from_fit
+  EXPECTED_SUMMARY_ROWS = []
+  EXPECTED_LAP_COLS = ['timestamp_start', 'timestamp_end']
+  EXPECTED_RECORD_COLS = ['timestamp', 'time', 'lat', 'lon', 'elevation', 'distance']
+
 
 class TestCompare(unittest.TestCase):
 
