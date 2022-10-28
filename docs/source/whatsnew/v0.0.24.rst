@@ -22,6 +22,12 @@ and :meth:`Activity.from_tcx` can now read route files in addition to activity
 files. Previously, these methods did not know what to do when confronted with 
 these files, which are formatted slightly differently.
 
+Support and testing for Python versions 3.8+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Rather than testing only in my local development environment and hoping
+everything works in different configurations, I added a CI pipeline using
+Github Actions to verify all the tests are passing in python 3.{7-11}.
+
 .. _whatsnew_0024.enhancements.enhancement2:
 
 enhancement2

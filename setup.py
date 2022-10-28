@@ -30,8 +30,6 @@ def get_version(rel_path):
 with open('README.md', 'r') as readme_file:
   readme = readme_file.read()
 
-requirements = ['numpy>=1.15', 'pandas>=1.0.0']
-
 pkg_name = 'heartandsole'
 
 setup(
@@ -47,11 +45,16 @@ setup(
     'Documentation': 'https://heartandsole.readthedocs.io/en/stable/',
   },
   packages=find_packages(exclude=['docs', 'test', 'exclude']),
-  install_requires=requirements,
+  python_requires='>=3.7',
+  install_requires=['numpy>=1.15', 'pandas>=1.0.0'],
   license='MIT License',
   classifiers=[
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
     'License :: OSI Approved :: MIT License',
   ],
 )
