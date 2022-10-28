@@ -1,0 +1,5 @@
+pandas-xyz>=0.0.5
+# activereader>=0.0.2  # not published yet
+git+https://github.com/aaron-schroeder/activereader.git
+fitparse>=1.1.0
+scipy>=1.6.3  # isn't this included with pandas?
