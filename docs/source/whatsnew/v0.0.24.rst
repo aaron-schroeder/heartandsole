@@ -48,10 +48,12 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_0024.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_0024.notable_bug_fixes.fix_distutils_import:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Fix distutils import in :mod:`compat._optional`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Resolves an exception related to `LooseVersion` that was thrown anytime
+an :ref:`optional dependency<install.optional_dependencies>` was imported.
 
 .. _whatsnew_0024.notable_bug_fixes.notable_bug_fix2:
 
