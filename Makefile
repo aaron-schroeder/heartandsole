@@ -3,9 +3,12 @@ init:
 
 doc:
 	# sphinx-apidoc --module-first -f -o docs/source pandas_xyz
-	rm docs/source/reference/api/*.rst
+	rm -f docs/source/reference/api/*.rst
 	make -C docs/ clean
 	make -C docs/ html
+
+test:
+	python -m unittest discover -s 'tests' -p 'test*.py' -v
 
 clean:
 	rm -Rf *.egg-info build dist
@@ -18,7 +21,7 @@ testpublish:
 	# python setup.py bdist_wheel
 	python setup.py sdist bdist_wheel
 	twine check dist/*
-	# twine upload -r testpypi dist/*
+	twine upload -r testpypi dist/*
 	# $(MAKE) clean
 
 publish:
@@ -28,5 +31,5 @@ publish:
 	pip install twine wheel
 	python setup.py sdist bdist_wheel
 	twine check dist/*
-	# twine upload dist/*
+	twine upload dist/*
 	# $(MAKE) clean
