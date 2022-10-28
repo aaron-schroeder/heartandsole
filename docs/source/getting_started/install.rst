@@ -17,7 +17,7 @@ Instructions for installing a
 Python version support
 ----------------------
 
-Officially Python 3.7 and above.
+Officially Python 3.7, 3.8, 3.9, 3.10, and 3.11.
 
 Installing heartandsole
 -----------------------

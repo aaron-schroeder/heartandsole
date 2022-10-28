@@ -2,7 +2,7 @@
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/heartandsole.svg)](https://pypi.org/project/heartandsole/)
 [![License](https://img.shields.io/pypi/l/heartandsole.svg)](https://github.com/aaron-schroeder/heartandsole/blob/master/LICENSE)
-[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/heartandsole.svg)](https://www.python.org/downloads/)
 
 ## Table of Contents                                                                    
 - [Introduction](#introduction)

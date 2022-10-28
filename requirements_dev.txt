@@ -1,15 +1,11 @@
 pip>=21.1.2
 wheel==0.33.1
 twine==1.13.0
-docutils<0.17
-python-dateutil>=2.7.3
-activereader>=0.0.1
-numpy>=1.15.0
-pandas>=1.0.0
-pandas-xyz>=0.0.5
-fitparse>=1.1.0
-scipy>=1.6.3
+-r requirements.txt
+python-dateutil>=2.7.3  # only for testing
+docutils<0.17  # compat issue with sphinx I think
 ipython>=7.24.1
 sphinx
 sphinx-rtd-theme>=0.5.2
 sphinx-autosummary-accessors>=0.2
+-r requirements_extras.txt
