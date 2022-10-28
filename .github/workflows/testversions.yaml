@@ -2,7 +2,9 @@ name: Python package
 
 on: 
   workflow_dispatch:
-  push:
+  # push:
+  #   branches: master
+  pull_request:
     branches: master
 
 jobs:
