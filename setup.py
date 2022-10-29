@@ -44,7 +44,7 @@ setup(
   project_urls={
     'Documentation': 'https://heartandsole.readthedocs.io/en/stable/',
   },
-  packages=find_packages(exclude=['docs', 'test', 'exclude']),
+  packages=find_packages(exclude=['docs', 'test', 'exclude', 'checklists']),
   python_requires='>=3.7',
   install_requires=['numpy>=1.15', 'pandas>=1.0.0'],
   license='MIT License',
