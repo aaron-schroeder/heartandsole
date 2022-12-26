@@ -1,5 +1,5 @@
 pip>=21.1.2
-wheel==0.33.1
+wheel==0.38.1
 twine==1.13.0
 -r requirements.txt
 python-dateutil>=2.7.3  # only for testing
