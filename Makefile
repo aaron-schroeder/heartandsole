@@ -8,7 +8,7 @@ doc:
 	make -C docs/ html
 
 test:
-	python -m unittest discover -s 'tests' -p 'test*.py' -v
+	python -m unittest discover -p 'test*.py' -v
 
 clean:
 	rm -Rf *.egg-info build dist
