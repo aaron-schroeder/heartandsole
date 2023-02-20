@@ -63,7 +63,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-|                 |                 |    X     |    X    |
+| pandas          | 1.5.0           | X        | X       |
 +-----------------+-----------------+----------+---------+
 
 For :ref:`optional libraries <install>` the general recommendation is to use the latest version.
