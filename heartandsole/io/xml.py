@@ -1,10 +1,11 @@
 import datetime
+import re
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 import warnings
 
 from lxml import etree
 from lxml.builder import ElementMaker
-from urllib.error import HTTPError
-from urllib.request import Request, urlopen
 
 import pandas as pd
 
