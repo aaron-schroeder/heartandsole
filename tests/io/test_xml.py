@@ -118,3 +118,9 @@ class TestDocParser(unittest.TestCase):
     transform = etree.XSLT(xsl_root)
     xslt_result = transform(self.parser.root)
     purty_print(xslt_result)
+
+  def test_schema_validate(self):
+    doc_parser = DocParser('tests/testdata.tcx')
+    schema = doc_parser.schema_parser.xml_schema
+    schema.assertValid(doc_parser.root)
+    # schema.assertValid(gpx_root)  # raises DocumentInvalid
