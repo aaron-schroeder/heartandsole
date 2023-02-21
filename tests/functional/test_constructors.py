@@ -1,14 +1,17 @@
-import datetime
-import io
-import math
-import os
 import unittest
 
-from numpy.testing import assert_array_equal, assert_allclose
 import pandas as pd
-from pandas.testing import assert_frame_equal, assert_series_equal
+from pandas.testing import assert_frame_equal
 
-from heartandsole import Activity
+from heartandsole import (
+  Activity,
+  GpxRte, GpxTrk,
+  TcxActivity, TcxCourse,
+  FitActivity, FitCourse,
+  # JsonStravaStreams,
+  # CsvActivity  # my own schema or eg Garmin's
+)
+from tests.util import datapath
 
 
 # Expected dtypes for elements in the 'summary' Series.
@@ -72,11 +75,10 @@ RECORD_DTYPE_CHECKERS = {
 }
 
 
-class FileReaderTestMixin(object):
-  
+class ConstructorTestMixin:
   def setUp(self):
     # self.rdr = self.READER_CLASS(self.TESTDATA_FILENAME)
-    self.act = self.READER(self.TESTDATA_FILENAME)
+    self.instance = self.CLASS.from_file(self.TESTDATA_FILENAME)
 
   def assertHasAttr(self, obj, attr_name):
     self.assertTrue(
@@ -85,53 +87,53 @@ class FileReaderTestMixin(object):
     )
 
   def test_summary(self):
-    self.assertHasAttr(self.act, 'summary')
+    self.assertHasAttr(self.instance, 'summary')
     for row_name in self.EXPECTED_SUMMARY_ROWS:
-      self.assertIn(row_name, self.act.summary.index)
+      self.assertIn(row_name, self.instance.summary.index)
       self.assertTrue(
-        SUMMARY_TYPE_CHECKERS[row_name](self.act.summary[row_name]),
-        msg=f'{row_name}: {type(self.act.summary[row_name])}'
+        SUMMARY_TYPE_CHECKERS[row_name](self.instance.summary[row_name]),
+        msg=f'{row_name}: {type(self.instance.summary[row_name])}'
       )
 
   def test_laps(self):
-    self.assertHasAttr(self.act, 'laps')
+    self.assertHasAttr(self.instance, 'laps')
     for col_name in self.EXPECTED_LAP_COLS:
-      self.assertIn(col_name, self.act.laps.columns)
+      self.assertIn(col_name, self.instance.laps.columns)
       self.assertTrue(
-        LAP_DTYPE_CHECKERS[col_name](self.act.laps[col_name]),
-        msg=f'{col_name}: {self.act.laps[col_name].dtype}'
+        LAP_DTYPE_CHECKERS[col_name](self.instance.laps[col_name]),
+        msg=f'{col_name}: {self.instance.laps[col_name].dtype}'
       )
 
   def test_records(self):
-    self.assertHasAttr(self.act, 'records')
+    self.assertHasAttr(self.instance, 'records')
     for col_name in self.EXPECTED_RECORD_COLS:
-      self.assertIn(col_name, self.act.records.columns)
+      self.assertIn(col_name, self.instance.records.columns)
       self.assertTrue(
-        RECORD_DTYPE_CHECKERS[col_name](self.act.records[col_name]),
-        msg=f'{col_name}: {self.act.records[col_name].dtype}'
+        RECORD_DTYPE_CHECKERS[col_name](self.instance.records[col_name]),
+        msg=f'{col_name}: {self.instance.records[col_name].dtype}'
       )
 
 
-class TestGpx(FileReaderTestMixin, unittest.TestCase):
-  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testdata.gpx')
-  READER = Activity.from_gpx
+class TestGpxTrk(ConstructorTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = datapath('io', 'data', 'gpx', 'trk.gpx')
+  CLASS = GpxTrk
   EXPECTED_SUMMARY_ROWS = ['timestamp_start', 'title', 'sport']
   EXPECTED_LAP_COLS = []
   EXPECTED_RECORD_COLS = ['timestamp', 'time', 'lat', 'lon', 'elevation',
     'cadence', 'heartrate']
 
 
-class TestGpxCourse(FileReaderTestMixin, unittest.TestCase):
-  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testcourse.gpx')
-  READER = Activity.from_gpx
+class TestGpxRte(ConstructorTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = datapath('io', 'data', 'gpx', 'rte.gpx')
+  CLASS = GpxRte
   EXPECTED_SUMMARY_ROWS = ['title']
   EXPECTED_LAP_COLS = []
   EXPECTED_RECORD_COLS = ['timestamp', 'time', 'lat', 'lon', 'elevation']
 
 
-class TestTcx(FileReaderTestMixin, unittest.TestCase):
-  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testdata.tcx')
-  READER = Activity.from_tcx
+class TestTcxActivity(ConstructorTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = datapath('io', 'data', 'tcx', 'activity.tcx')
+  CLASS = TcxActivity
   EXPECTED_SUMMARY_ROWS = ['sport', 'device', 'unit_id', 'product_id']
   EXPECTED_LAP_COLS = ['time_timer', 'timestamp_start', 'distance_total', 
     'speed_max', 'speed_avg', 'calories', 'cadence_avg', 'cadence_max', 
@@ -148,18 +150,18 @@ class TestTcx(FileReaderTestMixin, unittest.TestCase):
   #   cls.tcx_sparse = TcxFileReader('activity_files/20190425_110505_Running.tcx')
 
 
-class TestTcxCourse(FileReaderTestMixin, unittest.TestCase):
-  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testcourse.tcx')
-  READER = Activity.from_tcx
+class TestTcxCourse(ConstructorTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = datapath('io', 'data', 'tcx', 'course.tcx')
+  CLASS = TcxCourse
   EXPECTED_SUMMARY_ROWS = []
   EXPECTED_LAP_COLS = ['time_timer', 'distance_total']
   EXPECTED_RECORD_COLS = ['timestamp', 'time', 'lat', 'lon', 'elevation',
     'distance']
 
 
-class TestFit(FileReaderTestMixin, unittest.TestCase):
-  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testdata.fit')
-  READER = Activity.from_fit
+class TestFitActivity(ConstructorTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = datapath('io', 'data', 'fit', 'activity.fit')
+  CLASS = FitActivity
   EXPECTED_SUMMARY_ROWS = ['timestamp_start', 'time_elapsed', 'time_timer',
     'distance_total', 'calories', 'speed_avg', 'speed_max', 'elevation_gain',
     'elevation_loss', 'heartrate_avg', 'heartrate_max', 'cadence_avg',
@@ -180,25 +182,53 @@ class TestFit(FileReaderTestMixin, unittest.TestCase):
   #   cls.fit_garmin = FitFileReader('activity_files/3981100861.fit')
 
 
-class TestFitCourse(FileReaderTestMixin, unittest.TestCase):
-  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testcourse.fit')
-  READER = Activity.from_fit
+class TestFitCourse(ConstructorTestMixin, unittest.TestCase):
+  TESTDATA_FILENAME = datapath('io', 'data', 'fit', 'course.fit')
+  CLASS = FitCourse
   EXPECTED_SUMMARY_ROWS = []
   EXPECTED_LAP_COLS = ['timestamp_start', 'timestamp_end']
   EXPECTED_RECORD_COLS = ['timestamp', 'time', 'lat', 'lon', 'elevation', 'distance']
 
 
-class TestCompare(unittest.TestCase):
+class TestActivityAliasesDeprecate(unittest.TestCase):
+  """Test to-be-deprecated Activity.from_* constructors"""
+  instances = {
+    'fit_activity': (Activity.from_fit, TestFitActivity),
+    'fit_course': (Activity.from_fit, TestFitActivity),
+    'tcx_activity': (Activity.from_tcx, TestTcxActivity),
+    'tcx_course': (Activity.from_tcx, TestTcxCourse),
+    'gpx_trk': (Activity.from_gpx, TestGpxTrk),
+    'gpx_rte': (Activity.from_gpx, TestGpxRte),
+  }
 
   @classmethod
   def setUpClass(cls):
-    cls.fit = Activity.from_fit(TestFit.TESTDATA_FILENAME)
-    cls.tcx = Activity.from_tcx(TestTcx.TESTDATA_FILENAME)
-    cls.gpx = Activity.from_gpx(TestGpx.TESTDATA_FILENAME)
+    for instance_nm, (constructor, test_case) in cls.instances.items():
+      setattr(
+        cls,
+        instance_nm,
+        constructor(test_case.TESTDATA_FILENAME)
+      )
+    # cls.fit_activity = Activity.from_fit(TestFitActivity.TESTDATA_FILENAME)
+    # cls.fit_course = Activity.from_fit(TestFitCourse.TESTDATA_FILENAME)
+    # cls.tcx_activity = Activity.from_tcx(TestTcxActivity.TESTDATA_FILENAME)
+    # cls.tcx_course = Activity.from_tcx(TestTcxCourse.TESTDATA_FILENAME)
+    # cls.gpx_trk = Activity.from_gpx(TestGpxTrk.TESTDATA_FILENAME)
+    # cls.gpx_rte = Activity.from_gpx(TestGpxRte.TESTDATA_FILENAME)
 
     # Drop the elevation column from the .tcx DataFrame so we can
     # compare it to the .fit DataFrame, which has no file elevations.
     # cls.tcx.data.drop(columns=['elevation'], inplace=True)
+
+  def test_class_type(self):
+    for instance_nm, (_, test_case) in self.instances.items():
+      self.assertIsInstance(
+        getattr(self, instance_nm),
+        test_case.CLASS
+      )
+
+  def test_warns_deprecation(self):
+    pass
 
   def test_records(self):
     """Checks that dataframes are identical.
@@ -212,20 +242,20 @@ class TestCompare(unittest.TestCase):
     expected_identical_fields = ['timestamp', 'lat', 'lon', 'distance', 
       'heartrate', 'speed', 'cadence', 'time']
     assert_frame_equal(
-      self.fit.records[expected_identical_fields],
-      self.tcx.records_unique[expected_identical_fields],
+      self.fit_activity.records[expected_identical_fields],
+      self.tcx_activity.records_unique[expected_identical_fields],
       check_like=True,   # ignore row/col order
       check_dtype=False, # checked in individual TestCases
     )
 
   def test_summary(self):
     self.assertEqual(
-      self.fit.summary['sport'].lower(),
-      self.tcx.summary['sport'].lower()
+      self.fit_activity.summary['sport'].lower(),
+      self.tcx_activity.summary['sport'].lower()
     )
     self.assertEqual(
-      self.gpx.summary['sport'].lower(),
-      self.tcx.summary['sport'].lower()
+      self.gpx_trk.summary['sport'].lower(),
+      self.tcx_activity.summary['sport'].lower()
     )
 
   def test_laps(self):
@@ -233,28 +263,12 @@ class TestCompare(unittest.TestCase):
 
     Structure, indexes, columns, dtypes, and values.
     """
-    # print(self.fit.laps)
-    # print(self.tcx.laps)
-
     # NOT elevation - garmin corrects it in tcx files
     expected_identical_fields = ['timestamp_start', 'time_timer', 
       'distance_total', 'speed_max', 'speed_avg', 'calories', 'heartrate_avg',
       'heartrate_max', 'cadence_avg', 'cadence_max']
     assert_frame_equal(
-      self.fit.laps[expected_identical_fields],
-      self.tcx.laps[expected_identical_fields],
+      self.fit_activity.laps[expected_identical_fields],
+      self.tcx_activity.laps[expected_identical_fields],
       check_dtype=False, # checked in individual TestCases
     )
-
-
-@unittest.skip('Need to create a test CSV file.')
-class TestCsv(unittest.TestCase):
-
-  TESTDATA_FILENAME = os.path.join(os.path.dirname(__file__), 'testdata.csv')
-
-  @classmethod
-  def setUpClass(cls):
-    cls.act = Activity.from_csv(cls.TESTDATA_FILENAME)
-
-  def test_1(self):
-    pass
