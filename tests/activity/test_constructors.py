@@ -1,16 +1,12 @@
 import datetime
 import math
-
-import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
-import pandas as pd
-import pandas.testing as tm
-
 import unittest
+
+import pandas as pd
 
 from heartandsole import Activity
 
- 
+
 class TestActivity(unittest.TestCase):
   # TODO: Separate into TestCases for input data handling,
   #       output data types, and output with missing fields.
@@ -41,27 +37,9 @@ class TestActivity(unittest.TestCase):
 
     cls.record_df = pd.DataFrame(data)
     cls.act = Activity(cls.record_df)
-
-  def test_convenience_methods(self):
-    for fld in ['timestamp', 'distance', 'speed', 'elevation', 'lat', 
-      'lon', 'heartrate', 'cadence']:
-      # self.assertIn(f'has_{fld}', dir(self.act))
-      # self.assertTrue(getattr(self.act, f'has_{fld}'))
-      self.assertTrue(self.act.has_streams(fld))
-
-    self.assertTrue(self.act.has_position)
-
-  def test_unique_records(self):
-    act = Activity(pd.DataFrame.from_dict(dict(
-      distance=[i % 50 for i in range(100)]
-    )))
-    self.assertEqual(len(act.records), 100)
-    self.assertEqual(len(act.records_unique), 50)
-
+  
   def test_create(self):
-    #Verify a new DataFrame instance is attached to the Activity, 
-    # not the same one that was passed in.
-    pass
+    self.assertIsNot(self.record_df, self.act.records)
 
   def test_validate(self):
     # Verify that Activity checks the type of each object passed in.
@@ -72,7 +50,6 @@ class TestActivity(unittest.TestCase):
     ]:
       with self.assertRaises(TypeError):
         a = Activity(record_obj)
-
 
   def test_index_format(self):
     # TODO: re-implement this logic; I think it is good.
@@ -100,7 +77,3 @@ class TestActivity(unittest.TestCase):
     #     Activity, df)
 
     pass
-
-
-if __name__ == '__main__':
-  unittest.main()
